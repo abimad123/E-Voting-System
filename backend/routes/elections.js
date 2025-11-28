@@ -5,6 +5,7 @@ const Election = require('../models/Election');
 const Candidate = require('../models/Candidate');
 const auth = require('../middleware/auth');
 
+
 // Create election (admin only)
 router.post('/', auth, async (req, res) => {
     console.log("Candidate API hit:", req.params.id, req.body);
@@ -66,5 +67,43 @@ router.post('/:id/candidates', auth, async (req, res) => {
     res.status(500).json({ msg: 'Server error' });
   }
 });
+
+// GET /api/elections/:id/results
+// Public results endpoint (you can protect with auth if you want)
+router.get('/:id/results', async (req, res) => {
+  try {
+    const electionId = req.params.id;
+
+    const election = await Election.findById(electionId).lean();
+    if (!election) {
+      return res.status(404).json({ msg: 'Election not found' });
+    }
+
+    const candidates = await Candidate.find({ election: electionId })
+      .sort({ votesCount: -1, name: 1 })
+      .lean();
+
+    const totalVotes = candidates.reduce(
+      (sum, c) => sum + (c.votesCount || 0),
+      0
+    );
+
+    let maxVotes = 0;
+    for (const c of candidates) {
+      const v = c.votesCount || 0;
+      if (v > maxVotes) maxVotes = v;
+    }
+
+    const winners = candidates
+      .filter((c) => (c.votesCount || 0) === maxVotes && maxVotes > 0)
+      .map((c) => c._id);
+
+    return res.json({ election, candidates, totalVotes, winners });
+  } catch (err) {
+    console.error('results route error:', err);
+    res.status(500).json({ msg: 'Internal server error', error: err.message });
+  }
+});
+
 
 module.exports = router;

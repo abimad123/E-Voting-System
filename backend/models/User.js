@@ -7,21 +7,25 @@ const userSchema = new mongoose.Schema({
   passwordHash: { type: String, required: true },
   role: { type: String, enum: ['voter', 'admin'], default: 'voter' },
 
-  // Verification / KYC fields
+  // KYC fields
   dob: { type: Date },
-  idType: { type: String },
-  idNumberHash: { type: String },
-  idDocPath: { type: String },
+  idType: { type: String },          // e.g. Aadhaar, VoterID, StudentID
+  idNumberHash: { type: String },    // hashed ID number
+  idDocPath: { type: String },       // uploaded ID proof
+
+  // Verification status
   verificationStatus: {
     type: String,
     enum: ['pending', 'approved', 'rejected'],
-    default: 'pending'
+    default: 'pending',
   },
   verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   verifiedAt: Date,
 
-  createdAt: { type: Date, default: Date.now }
+  // Profile avatar
+  avatarUrl: { type: String },       // /uploads/avatars/xyz.jpg
+
+  createdAt: { type: Date, default: Date.now },
 });
 
-// use existing compiled model if present (prevents OverwriteModelError in nodemon)
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);
