@@ -2,6 +2,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
+import Navbar from "../components/Navbar";
+
 
 
 
@@ -55,8 +57,11 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gray-50">
-      <div className="max-w-5xl mx-auto space-y-6">
+  <div className="min-h-screen bg-gray-50">
+    <Navbar user={user} />
+
+    <div className="max-w-5xl p-6 pt-20 mx-auto space-y-6">
+
         {/* user info */}
        <div className="flex items-center justify-between p-4 bg-white rounded shadow">
   <div>
@@ -80,25 +85,7 @@ export default function Dashboard() {
     </p>
   </div>
 
-  <div className="flex gap-2">
-    <button
-      onClick={() => navigate("/profile")}
-      className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
-    >
-      Profile
-    </button>
-     <button onClick={() => navigate("/help")} className="px-3 py-1 text-xs text-blue-600 border border-blue-400 rounded hover:bg-blue-50">
-    Help / FAQ   </button>
-    <button
-      onClick={() => {
-        localStorage.removeItem("token");
-        navigate("/login");
-      }}
-      className="px-3 py-1 text-xs text-red-600 border border-red-400 rounded hover:bg-red-50"
-    >
-      Logout
-    </button>
-  </div>
+
 </div>
 {/* inside the top card in Dashboard, under user info */}
 {user?.role === "admin" && (
