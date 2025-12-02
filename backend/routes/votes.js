@@ -8,6 +8,26 @@ const Election = require('../models/Election');
 const AuditLog = require('../models/AuditLog');
 const User = require('../models/User');
 
+
+// GET /api/votes/my  -> get all votes of current user
+router.get('/votes/my', auth, async (req, res) => {
+  try {
+    const voterId = req.user.id;
+
+    const votes = await Vote.find({ voter: voterId })
+      .populate('election', 'title startTime endTime')
+      .populate('candidate', 'name party')
+      .sort({ _id: -1 }) // newest first
+      .lean();
+
+    return res.json({ votes });
+  } catch (err) {
+    console.error('my votes error:', err);
+    res.status(500).json({ msg: 'Internal server error', error: err.message });
+  }
+});
+
+
 // POST /api/elections/:id/vote
 router.post('/elections/:id/vote', auth, async (req, res) => {
   const voterId = req.user.id;

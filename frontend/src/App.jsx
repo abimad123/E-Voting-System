@@ -6,6 +6,11 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import ElectionDetail from "./pages/ElectionDetail";
 import ElectionResults from "./pages/ElectionResults";
+import Profile from "./pages/Profile";
+import AdminPanel from "./pages/AdminPanel";
+import MyVotes from "./pages/MyVotes";
+import HelpFAQ from "./pages/HelpFAQ";
+
 
 
 export default function App() {
@@ -15,9 +20,14 @@ export default function App() {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/admin" element={<AdminPanel />} />
+        <Route path="/my-votes" element={<MyVotes />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/elections/:id" element={<ElectionDetail />} />
         <Route path="/elections/:id/results" element={<ElectionResults />} />
+        <Route path="/profile" element={<Profile />} />
+          <Route path="/help" element={<HelpFAQ />} />
+
 
         <Route path="*" element={<div className="p-6">Page not found</div>} />
       </Routes>

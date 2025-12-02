@@ -3,6 +3,8 @@ import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 
+
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState(null);
@@ -56,28 +58,59 @@ export default function Dashboard() {
     <div className="min-h-screen p-6 bg-gray-50">
       <div className="max-w-5xl mx-auto space-y-6">
         {/* user info */}
-        <div className="flex items-center justify-between p-4 bg-white rounded shadow">
-          <div>
-            <h1 className="text-xl font-semibold">
-              Welcome, {user?.name || "Voter"}
-            </h1>
-            <p className="text-sm text-gray-600">{user?.email}</p>
-            <p className="mt-1 text-xs">
-              Status:{" "}
-              <span
-                className={
-                  user?.verificationStatus === "approved"
-                    ? "text-green-600 font-medium"
-                    : user?.verificationStatus === "rejected"
-                    ? "text-red-600 font-medium"
-                    : "text-yellow-600 font-medium"
-                }
-              >
-                {user?.verificationStatus || "pending"}
-              </span>
-            </p>
-          </div>
-        </div>
+       <div className="flex items-center justify-between p-4 bg-white rounded shadow">
+  <div>
+    <h1 className="text-xl font-semibold">
+      Welcome, {user?.name || "Voter"}
+    </h1>
+    <p className="text-sm text-gray-600">{user?.email}</p>
+    <p className="mt-1 text-xs">
+      Status:{" "}
+      <span
+        className={
+          user?.verificationStatus === "approved"
+            ? "text-green-600 font-medium"
+            : user?.verificationStatus === "rejected"
+            ? "text-red-600 font-medium"
+            : "text-yellow-600 font-medium"
+        }
+      >
+        {user?.verificationStatus || "pending"}
+      </span>
+    </p>
+  </div>
+
+  <div className="flex gap-2">
+    <button
+      onClick={() => navigate("/profile")}
+      className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-gray-100"
+    >
+      Profile
+    </button>
+     <button onClick={() => navigate("/help")} className="px-3 py-1 text-xs text-blue-600 border border-blue-400 rounded hover:bg-blue-50">
+    Help / FAQ   </button>
+    <button
+      onClick={() => {
+        localStorage.removeItem("token");
+        navigate("/login");
+      }}
+      className="px-3 py-1 text-xs text-red-600 border border-red-400 rounded hover:bg-red-50"
+    >
+      Logout
+    </button>
+  </div>
+</div>
+{/* inside the top card in Dashboard, under user info */}
+{user?.role === "admin" && (
+  <button
+    onClick={() => navigate("/admin")}
+    className="px-3 py-1 mt-2 text-xs text-white bg-blue-600 rounded hover:bg-blue-700"
+  >
+    Go to Admin Panel
+  </button>
+)}
+
+
 
         {msg && (
           <div

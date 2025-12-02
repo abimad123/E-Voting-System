@@ -12,6 +12,8 @@ export default function ElectionDetail() {
   const [canVote, setCanVote] = useState(false);
   const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
+
 
   useEffect(() => {
     async function load() {
@@ -23,13 +25,15 @@ export default function ElectionDetail() {
         setCandidates(res.data.candidates || []);
 
         // vote status & verification status
-        const [voteRes, meRes] = await Promise.all([
-          api.get(`/api/elections/${id}/vote-status`),
-          api.get("/api/auth/me"),
-        ]);
+      const [voteRes, meRes] = await Promise.all([
+  api.get(`/api/elections/${id}/vote-status`),
+  api.get("/api/auth/me"),
+]);
 
-        setHasVoted(!!voteRes.data.hasVoted);
-        setCanVote(meRes.data.user.verificationStatus === "approved");
+setHasVoted(!!voteRes.data.hasVoted);
+setCanVote(meRes.data.user.verificationStatus === "approved");
+setCurrentUser(meRes.data.user);
+
       } catch (err) {
         console.error(err);
         if (err?.response?.status === 401) {
@@ -76,6 +80,9 @@ export default function ElectionDetail() {
   const isCompleted = end && now > end;
   const isNotStarted = start && now < start;
   const isActive = !isCompleted && !isNotStarted;
+  const canSeeVotes =
+  isCompleted || (currentUser && currentUser.role === "admin");
+
 
   return (
     <div className="min-h-screen p-6 bg-gray-50">
@@ -174,8 +181,11 @@ export default function ElectionDetail() {
               </div>
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-600">
-                  Votes: <span className="font-semibold">{c.votesCount || 0}</span>
-                </span>
+  Votes:{" "}
+  <span className="font-semibold">
+    {canSeeVotes ? (c.votesCount || 0) : "Hidden until results are published"}
+  </span>
+</span>
 
                 <button
                   className={`px-3 py-1 text-xs rounded border ${

@@ -2,146 +2,298 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const multer = require('multer');
 const crypto = require('crypto');
+const multer = require('multer');
 const path = require('path');
 
 const User = require('../models/User');
-const AuditLog = require('../models/AuditLog'); // make sure this file exists
-const authMiddleware = require('../middleware/auth');
+const AuditLog = require('../models/AuditLog');
+
+// ✅ use ONE name for the auth middleware
+const auth = require('../middleware/auth');
 
 const router = express.Router();
 
-// ---------- multer setup (ID uploads) ----------
-const uploadDir = path.join(__dirname, '..', 'uploads', 'id_docs');
-// Make sure this folder exists on disk: backend/uploads/id_docs
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
+function ensureAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ msg: 'Admin only' });
+  }
+  next();
+}
+
+
+// ---------- Multer storage for ID docs ----------
+const idStorage = multer.diskStorage({
+  destination: (req, file, cb) =>
+    cb(null, path.join(__dirname, '..', 'uploads', 'id_docs')),
   filename: (req, file, cb) => {
     const ext = file.originalname.split('.').pop();
     cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`);
-  }
+  },
 });
-const upload = multer({ storage });
+const uploadId = multer({ storage: idStorage });
 
-// ---------- helper ----------
-function calculateAge(dob) {
-  if (!dob) return 0;
-  const diff = Date.now() - new Date(dob).getTime();
-  const ageDt = new Date(diff);
-  return Math.abs(ageDt.getUTCFullYear() - 1970);
-}
+// ---------- Multer storage for avatars ----------
+const avatarStorage = multer.diskStorage({
+  destination: (req, file, cb) =>
+    cb(null, path.join(__dirname, '..', 'uploads', 'avatars')),
+  filename: (req, file, cb) => {
+    const ext = file.originalname.split('.').pop();
+    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`);
+  },
+});
+const uploadAvatar = multer({ storage: avatarStorage });
 
-// ---------- Register with ID upload ----------
-router.post('/register', upload.single('idDoc'), async (req, res) => {
+// ---------- Register with KYC ----------
+router.post('/register', uploadId.single('idDoc'), async (req, res) => {
   try {
     const { name, email, password, dob, idType, idNumber } = req.body;
 
     if (!name || !email || !password) {
-      return res.status(400).json({ msg: 'name, email and password are required' });
+      return res.status(400).json({ msg: 'Name, email, password are required' });
     }
 
-    // age check (optional if dob provided)
-    if (dob) {
-      const age = calculateAge(dob);
-      if (age < 18) return res.status(400).json({ msg: 'Must be 18+ to register' });
-    }
-
-    // duplicate email check
     const existing = await User.findOne({ email });
-    if (existing) return res.status(400).json({ msg: 'Email already registered' });
+    if (existing) {
+      return res.status(400).json({ msg: 'Email already registered' });
+    }
 
-    // hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // hash idNumber if provided
-    let idNumberHash = null;
+    let idNumberHash = undefined;
     if (idNumber) {
-      idNumberHash = crypto.createHash('sha256').update(String(idNumber)).digest('hex');
-      // You could check duplicate idNumberHash here to prevent duplicate registrations:
-      // const dup = await User.findOne({ idNumberHash });
-      // if (dup) return res.status(400).json({ msg: 'ID already used' });
+      idNumberHash = crypto
+        .createHash('sha256')
+        .update(idNumber)
+        .digest('hex');
+    }
+
+    // age check if dob provided
+    let parsedDob = dob ? new Date(dob) : undefined;
+    if (parsedDob && !isNaN(parsedDob)) {
+      const ageMs = Date.now() - parsedDob.getTime();
+      const age = new Date(ageMs).getUTCFullYear() - 1970;
+      if (age < 18) {
+        return res.status(400).json({ msg: 'Must be 18+ to register' });
+      }
     }
 
     const user = new User({
       name,
       email,
       passwordHash,
-      dob: dob ? new Date(dob) : undefined,
-      idType: idType || undefined,
+      dob: parsedDob || undefined,
+      idType,
       idNumberHash,
-      idDocPath: req.file ? req.file.path : undefined,
-      verificationStatus: 'pending'
+      idDocPath: req.file ? `/uploads/id_docs/${req.file.filename}` : undefined,
+      verificationStatus: 'pending',
     });
 
     await user.save();
 
-    // optional: create audit log
-    await AuditLog.create({ user: user._id, action: 'USER_REGISTERED', details: { email: user.email } });
+    await AuditLog.create({
+      user: user._id,
+      action: 'USER_REGISTERED',
+      details: { email: user.email },
+    });
 
     res.json({ msg: 'Registered. Awaiting verification.' });
   } catch (err) {
-    console.error('Register error:', err);
-    // handle duplicate key on email gracefully
-    if (err.code === 11000) return res.status(400).json({ msg: 'Email already registered' });
+    console.error('register error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
+
+router.get('/admin/users', auth, ensureAdmin, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = {};
+    if (status) filter.verificationStatus = status;
+
+    const users = await User.find(filter)
+      .select('-passwordHash')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({ users });
+  } catch (err) {
+    console.error('admin users error:', err);
+    res.status(500).json({ msg: 'Server error' });
+  }
+});
+
+
 
 // ---------- Login ----------
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ msg: 'email and password required' });
-
     const user = await User.findOne({ email });
+
     if (!user) return res.status(400).json({ msg: 'Invalid email or password' });
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
+    if (!isMatch)
+      return res.status(400).json({ msg: 'Invalid email or password' });
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
 
-    res.json({ token, user: { id: user._id, name: user.name, role: user.role, verificationStatus: user.verificationStatus } });
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        verificationStatus: user.verificationStatus,
+        avatarUrl: user.avatarUrl || null,
+      },
+    });
   } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('login error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// ---------- Protected route: get current user ----------
-router.get('/me', authMiddleware, async (req, res) => {
+// ---------- Get current user ----------
+router.get('/me', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-passwordHash');
+    const user = await User.findById(req.user.id).select('-passwordHash').lean();
     if (!user) return res.status(404).json({ msg: 'User not found' });
     res.json({ user });
   } catch (err) {
-    console.error('GET /me error:', err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('me error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// ---------- Admin: approve/reject user verification ----------
-router.post('/admin/verify/:userId', authMiddleware, async (req, res) => {
+// ---------- Change password ----------
+router.post('/change-password', auth, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Admin only' });
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ msg: 'Current password and new password are required' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ msg: 'Current password is incorrect' });
+    }
+
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    await AuditLog.create({
+      user: user._id,
+      action: 'PASSWORD_CHANGED',
+      details: {},
+    });
+
+    res.json({ msg: 'Password changed successfully' });
+  } catch (err) {
+    console.error('change-password error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// ---------- Upload / update avatar ----------
+router.post(
+  '/avatar',
+  auth,
+  uploadAvatar.single('avatar'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ msg: 'No file uploaded' });
+      }
+
+      const user = await User.findById(req.user.id);
+      if (!user) return res.status(404).json({ msg: 'User not found' });
+
+      user.avatarUrl = `/uploads/avatars/${req.file.filename}`;
+      await user.save();
+
+      await AuditLog.create({
+        user: user._id,
+        action: 'AVATAR_UPDATED',
+        details: { avatarUrl: user.avatarUrl },
+      });
+
+      res.json({
+        msg: 'Avatar updated successfully',
+        avatarUrl: user.avatarUrl,
+      });
+    } catch (err) {
+      console.error('avatar error:', err);
+      res.status(500).json({ msg: 'Server error', error: err.message });
+    }
+  }
+);
+
+// ---------- Delete account ----------
+router.delete('/delete-account', auth, async (req, res) => {
+  try {
+    const { password } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+
+    const isMatch = await bcrypt.compare(password, user.passwordHash);
+    if (!isMatch) {
+      return res.status(400).json({ msg: 'Password is incorrect' });
+    }
+
+    await AuditLog.create({
+      user: user._id,
+      action: 'ACCOUNT_DELETED',
+      details: { email: user.email },
+    });
+
+    await User.findByIdAndDelete(user._id);
+
+    res.json({ msg: 'Account deleted successfully' });
+  } catch (err) {
+    console.error('delete-account error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// ---------- Admin verify user ----------
+router.post('/admin/verify/:userId', auth, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ msg: 'Admin only' });
+    }
     const { action } = req.body; // 'approve' or 'reject'
-    if (!action || !['approve', 'reject'].includes(action)) return res.status(400).json({ msg: 'action must be "approve" or "reject"' });
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ msg: 'Invalid action' });
+    }
 
     const update = {
       verificationStatus: action === 'approve' ? 'approved' : 'rejected',
       verifiedBy: req.user.id,
-      verifiedAt: new Date()
+      verifiedAt: new Date(),
     };
 
     await User.findByIdAndUpdate(req.params.userId, update);
 
-    // audit log
-    await AuditLog.create({ user: req.user.id, action: 'USER_VERIFICATION', details: { target: req.params.userId, result: action } });
+    await AuditLog.create({
+      user: req.user.id,
+      action: 'USER_VERIFICATION',
+      details: { target: req.params.userId, result: action },
+    });
 
     res.json({ msg: 'Updated' });
   } catch (err) {
-    console.error('Admin verify error:', err);
+    console.error('admin verify error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });

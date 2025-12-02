@@ -5,13 +5,48 @@ const Election = require('../models/Election');
 const Candidate = require('../models/Candidate');
 const auth = require('../middleware/auth');
 
+function ensureAdmin(req, res, next) {
+  if (!req.user || req.user.role !== 'admin') {
+    return res.status(403).json({ msg: 'Admin only' });
+  }
+  next();
+}
 
-// Create election (admin only)
-router.post('/', auth, async (req, res) => {
-    console.log("Candidate API hit:", req.params.id, req.body);
-
+// 🔹 Archive election (admin)
+router.patch('/:id/archive', auth, ensureAdmin, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Admin only' });
+    const election = await Election.findByIdAndUpdate(
+      req.params.id,
+      { isArchived: true },
+      { new: true }
+    );
+    if (!election) return res.status(404).json({ msg: 'Election not found' });
+    res.json({ msg: 'Election archived', election });
+  } catch (err) {
+    console.error('archive election error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// 🔹 Unarchive election (admin)
+router.patch('/:id/unarchive', auth, ensureAdmin, async (req, res) => {
+  try {
+    const election = await Election.findByIdAndUpdate(
+      req.params.id,
+      { isArchived: false },
+      { new: true }
+    );
+    if (!election) return res.status(404).json({ msg: 'Election not found' });
+    res.json({ msg: 'Election restored', election });
+  } catch (err) {
+    console.error('unarchive election error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// 🔹 Create election (admin only)
+router.post('/', auth, ensureAdmin, async (req, res) => {
+  try {
     const { title, description, startTime, endTime, isPublic } = req.body;
     const election = new Election({
       title,
@@ -19,28 +54,61 @@ router.post('/', auth, async (req, res) => {
       startTime,
       endTime,
       isPublic,
-      createdBy: req.user.id
+      isArchived: false,
+      createdBy: req.user.id,
     });
     await election.save();
     res.json({ election });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('create election error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// List elections (public) - can add filters for active only
+// 🔹 End election early (admin)
+router.post('/:id/end', auth, ensureAdmin, async (req, res) => {
+  try {
+    const election = await Election.findByIdAndUpdate(
+      req.params.id,
+      { endTime: new Date() },
+      { new: true }
+    );
+    if (!election) return res.status(404).json({ msg: 'Election not found' });
+
+    res.json({ msg: 'Election ended', election });
+  } catch (err) {
+    console.error('end election error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// 🔹 List active (non-archived) elections – used by dashboard & admin
 router.get('/', async (req, res) => {
   try {
-    const elections = await Election.find().sort({ createdAt: -1 }).lean();
+    const elections = await Election.find({ isArchived: { $ne: true } }).sort({
+      startTime: -1,
+    });
     res.json({ elections });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: 'Server error' });
+    console.error('list elections error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// Get single election with candidates
+// 🔹 List archived elections (admin)
+router.get('/archived/all', auth, ensureAdmin, async (req, res) => {
+  try {
+    const archived = await Election.find({ isArchived: true }).sort({
+      startTime: -1,
+    });
+    res.json({ archived });
+  } catch (err) {
+    console.error('list archived elections error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// 🔹 Get single election with candidates
 router.get('/:id', async (req, res) => {
   try {
     const election = await Election.findById(req.params.id).lean();
@@ -48,28 +116,31 @@ router.get('/:id', async (req, res) => {
     const candidates = await Candidate.find({ election: election._id }).lean();
     res.json({ election, candidates });
   } catch (err) {
-    console.error(err);
+    console.error('get election error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
 
-// Add candidate to an election (admin)
-router.post('/:id/candidates', auth, async (req, res) => {
+// 🔹 Add candidate to an election (admin)
+router.post('/:id/candidates', auth, ensureAdmin, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') return res.status(403).json({ msg: 'Admin only' });
     const electionId = req.params.id;
     const { name, party, description } = req.body;
-    const candidate = new Candidate({ election: electionId, name, party, description });
+    const candidate = new Candidate({
+      election: electionId,
+      name,
+      party,
+      description,
+    });
     await candidate.save();
     res.json({ candidate });
   } catch (err) {
-    console.error(err);
+    console.error('add candidate error:', err);
     res.status(500).json({ msg: 'Server error' });
   }
 });
 
-// GET /api/elections/:id/results
-// Public results endpoint (you can protect with auth if you want)
+// 🔹 Results endpoint
 router.get('/:id/results', async (req, res) => {
   try {
     const electionId = req.params.id;
@@ -101,9 +172,10 @@ router.get('/:id/results', async (req, res) => {
     return res.json({ election, candidates, totalVotes, winners });
   } catch (err) {
     console.error('results route error:', err);
-    res.status(500).json({ msg: 'Internal server error', error: err.message });
+    res
+      .status(500)
+      .json({ msg: 'Internal server error', error: err.message });
   }
 });
-
 
 module.exports = router;
