@@ -1,7 +1,6 @@
 // src/main.jsx
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOM from "react-dom/client";
 import App from "./App";
-import "./index.css"; // Tailwind entry
-
-createRoot(document.getElementById("root")).render(<App />);
+import "./index.css";  // <- this import is required
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);

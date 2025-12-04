@@ -2,10 +2,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
-import Navbar from "../components/Navbar";
-
-
-
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -58,8 +54,7 @@ export default function Dashboard() {
 
   return (
   <div className="min-h-screen bg-gray-50">
-    <Navbar user={user} />
-
+   
     <div className="max-w-5xl p-6 pt-20 mx-auto space-y-6">
 
         {/* user info */}
@@ -183,6 +178,15 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+  <div className="flex flex-col min-h-screen bg-gray-50">
+
+    <div className="flex-1 max-w-5xl p-6 pt-20 mx-auto">
+      {/* page content here */}
     </div>
+   
+  </div>
+</div>
+
+
   );
 }

@@ -52,6 +52,54 @@ export default function Register() {
     }
   }
 
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  function handleChange(e) {
+    const { name, value } = e.target;
+    if (name === "confirmPassword") {
+      setConfirmPassword(value);
+    } else {
+      setForm((s) => ({ ...s, [name]: value }));
+    }
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    
+    if (form.password !== confirmPassword) {
+      setMsg({ type: "error", text: "Passwords do not match" });
+      setLoading(false);
+      return;
+    }
+
+    setMsg(null);
+    setLoading(true);
+
+    try {
+      const fd = new FormData();
+      fd.append("name", form.name);
+      fd.append("email", form.email);
+      fd.append("password", form.password);
+      fd.append("dob", form.dob);
+      fd.append("idType", form.idType);
+      fd.append("idNumber", form.idNumber);
+      if (idFile) fd.append("idDoc", idFile);
+
+      const res = await api.post("/api/auth/register", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      setMsg({ type: "success", text: res.data.msg || "Registered." });
+      setTimeout(() => navigate("/login"), 1400);
+    } catch (err) {
+      console.error(err);
+      const text = err?.response?.data?.msg || err?.message || "Registration failed";
+      setMsg({ type: "error", text });
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <div className="w-full max-w-md p-6 bg-white rounded-lg shadow">
@@ -73,7 +121,9 @@ export default function Register() {
             value={form.name}
             onChange={handleChange}
             required
-            placeholder="Full name"
+            placeholder="Full name "
+            pattern="[A-Za-z\s]+"
+            title="Name should only contain letters and spaces"
             className="w-full p-2 border rounded"
           />
 
@@ -94,6 +144,16 @@ export default function Register() {
             required
             type="password"
             placeholder="Password"
+            className="w-full p-2 border rounded"
+          />
+
+          <input
+            name="confirmPassword"
+            value={confirmPassword}
+            onChange={handleChange}
+            required
+            type="password"
+            placeholder="Confirm Password"
             className="w-full p-2 border rounded"
           />
 
@@ -136,6 +196,7 @@ export default function Register() {
               type="file"
               accept="image/*,application/pdf"
               onChange={(e) => setIdFile(e.target.files?.[0])}
+              required
               className="mt-2"
             />
           </label>
