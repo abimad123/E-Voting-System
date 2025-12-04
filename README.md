@@ -6,6 +6,7 @@ cd "C:\Users\abiji\OneDrive\Desktop\lpu\LPU Class sem 5\React-projectED\e-voting
 $vToken
 
 Verified user (email/password) you created earlier: voter1@test.com / pass123 (that user is verificationStatus: "approved" in your logs).
+<<<<<<< HEAD
 Admin used earlier: admin@example.com / adminpass123.   
 
 Abi, let’s take a breath 🌿
@@ -647,3 +648,6 @@ Generate a small architecture diagram (ASCII style) you can paste in your report
 Or write a “System Architecture” section for your project documentation based on all this.
 
 
+=======
+Admin used earlier: admin@gmail.com / admin123@.   
+>>>>>>> 2bed67215ef917a9ba09f8bee7234131e46b8469
