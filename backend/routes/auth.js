@@ -11,7 +11,7 @@ const AuditLog = require('../models/AuditLog');
 
 // ✅ use ONE name for the auth middleware
 const auth = require('../middleware/auth');
-
+const verifyTurnstile = require('../middleware/verifyTurnstile');
 const router = express.Router();
 
 function ensureAdmin(req, res, next) {
@@ -125,7 +125,7 @@ router.get('/admin/users', auth, ensureAdmin, async (req, res) => {
 
 
 // ---------- Login ----------
-router.post('/login', async (req, res) => {
+router.post('/login', verifyTurnstile, async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });

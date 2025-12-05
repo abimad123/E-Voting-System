@@ -1,0 +1,206 @@
+// src/components/Navbar.jsx
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import api from "../api";
+import { Sun, Moon, Menu, X, User, LogOut } from "lucide-react";
+
+export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+  const [user, setUser] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadMe() {
+      if (!token) {
+        setUser(null);
+        return;
+      }
+      try {
+        const res = await api.get("/api/auth/me");
+        if (mounted) setUser(res.data.user);
+      } catch {
+        setUser(null);
+      }
+    }
+    loadMe();
+    return () => (mounted = false);
+  }, [token]);
+
+  const isActive = (path) =>
+    location.pathname === path || (path !== "/" && location.pathname.startsWith(path));
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
+  };
+
+  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+
+  // optionally hide navbar on login/register (if hideOnAuth true)
+  if (hideOnAuth && ["/login", "/register"].includes(location.pathname)) {
+    return null;
+  }
+
+  return (
+    <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 dark:bg-[#1a1a1a] dark:border-zinc-800 transition-colors duration-200">
+      <div className="max-w-6xl px-4 mx-auto">
+        <div className="flex items-center justify-between h-16">
+          
+          {/* Logo Section */}
+          <div className="flex items-center gap-3">
+             <img 
+                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
+                alt="National Emblem" 
+                className="h-8 w-auto object-contain opacity-90 dark:invert dark:opacity-100 dark:brightness-200"
+              />
+            <div
+              className="text-lg md:text-xl font-bold cursor-pointer text-[#0B2447] dark:text-white leading-tight"
+              onClick={() => navigate("/dashboard")}
+            >
+              Jan Seva <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="items-center hidden gap-6 text-sm font-medium md:flex">
+            <Link 
+              className={`transition-colors duration-200 ${isActive("/dashboard") ? "text-[#0B2447] dark:text-yellow-400 font-bold border-b-2 border-[#0B2447] dark:border-yellow-400" : "text-gray-600 hover:text-[#0B2447] dark:text-gray-300 dark:hover:text-yellow-400"}`} 
+              to="/dashboard"
+            >
+              Dashboard
+            </Link>
+            <Link 
+              className={`transition-colors duration-200 ${isActive("/help") ? "text-[#0B2447] dark:text-yellow-400 font-bold border-b-2 border-[#0B2447] dark:border-yellow-400" : "text-gray-600 hover:text-[#0B2447] dark:text-gray-300 dark:hover:text-yellow-400"}`} 
+              to="/help"
+            >
+              Help
+            </Link>
+            {token && (
+              <Link 
+                className={`transition-colors duration-200 ${isActive("/profile") ? "text-[#0B2447] dark:text-yellow-400 font-bold border-b-2 border-[#0B2447] dark:border-yellow-400" : "text-gray-600 hover:text-[#0B2447] dark:text-gray-300 dark:hover:text-yellow-400"}`} 
+                to="/profile"
+              >
+                Profile
+              </Link>
+            )}
+            {user?.role === "admin" && (
+              <Link 
+                className={`transition-colors duration-200 ${isActive("/admin") ? "text-[#0B2447] dark:text-yellow-400 font-bold border-b-2 border-[#0B2447] dark:border-yellow-400" : "text-gray-600 hover:text-[#0B2447] dark:text-gray-300 dark:hover:text-yellow-400"}`} 
+                to="/admin"
+              >
+                Admin Panel
+              </Link>
+            )}
+          </div>
+
+          {/* Right Side Actions */}
+          <div className="flex items-center gap-3">
+            
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-gray-600 rounded-full hover:bg-gray-100 dark:text-yellow-400 dark:hover:bg-zinc-800 transition-colors focus:outline-none"
+              aria-label="Toggle theme"
+            >
+              {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
+
+            {token && (
+               <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-gray-50 dark:bg-zinc-800 rounded-full border border-gray-200 dark:border-zinc-700">
+                  <User size={14} className="text-[#0B2447] dark:text-yellow-400" />
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{user?.name}</span>
+               </div>
+            )}
+
+            {!token ? (
+              <div className="hidden md:flex gap-3">
+                <button onClick={() => navigate("/login")} className="px-4 py-1.5 text-sm font-semibold text-[#0B2447] border border-[#0B2447] rounded hover:bg-[#0B2447] hover:text-white dark:text-yellow-400 dark:border-yellow-400 dark:hover:bg-yellow-400 dark:hover:text-black transition-all">
+                  Login
+                </button>
+                <button onClick={() => navigate("/register")} className="px-4 py-1.5 text-sm font-semibold text-white bg-[#0B2447] rounded hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 transition-all">
+                  Register
+                </button>
+              </div>
+            ) : (
+              <button onClick={handleLogout} className="hidden md:flex items-center gap-1 px-3 py-1.5 text-sm font-semibold text-red-600 border border-red-200 rounded hover:bg-red-50 dark:text-red-400 dark:border-red-900 dark:hover:bg-red-900/20">
+                <LogOut size={14} />
+                Logout
+              </button>
+            )}
+
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setMobileOpen((s) => !s)} 
+              className="p-2 text-gray-600 border rounded md:hidden dark:text-white dark:border-zinc-700"
+            >
+              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Dropdown */}
+        {mobileOpen && (
+          <div className="pb-4 md:hidden border-t border-gray-100 dark:border-zinc-800 mt-2">
+            <div className="flex flex-col gap-2 text-sm pt-4">
+              {token && <div className="px-2 pb-2 text-xs font-bold text-gray-400 uppercase">Signed in as {user?.name}</div>}
+              
+              <Link 
+                to="/dashboard" 
+                onClick={() => setMobileOpen(false)} 
+                className={`px-2 py-2 rounded ${isActive("/dashboard") ? "bg-[#0B2447] text-white dark:bg-yellow-400 dark:text-black font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800"}`}
+              >
+                Dashboard
+              </Link>
+              <Link 
+                to="/help" 
+                onClick={() => setMobileOpen(false)} 
+                className={`px-2 py-2 rounded ${isActive("/help") ? "bg-[#0B2447] text-white dark:bg-yellow-400 dark:text-black font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800"}`}
+              >
+                Help
+              </Link>
+              {token && (
+                <Link 
+                  to="/profile" 
+                  onClick={() => setMobileOpen(false)} 
+                  className={`px-2 py-2 rounded ${isActive("/profile") ? "bg-[#0B2447] text-white dark:bg-yellow-400 dark:text-black font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800"}`}
+                >
+                  Profile
+                </Link>
+              )}
+              {user?.role === "admin" && (
+                <Link 
+                  to="/admin" 
+                  onClick={() => setMobileOpen(false)} 
+                  className={`px-2 py-2 rounded ${isActive("/admin") ? "bg-[#0B2447] text-white dark:bg-yellow-400 dark:text-black font-bold" : "text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-zinc-800"}`}
+                >
+                  Admin Panel
+                </Link>
+              )}
+              
+              <div className="h-px bg-gray-200 dark:bg-zinc-800 my-1"></div>
+
+              {!token ? (
+                <div className="flex flex-col gap-2 mt-2">
+                  <button onClick={() => navigate("/login")} className="w-full px-2 py-2 font-semibold text-center text-[#0B2447] border border-[#0B2447] rounded dark:text-yellow-400 dark:border-yellow-400">
+                    Login
+                  </button>
+                  <button onClick={() => navigate("/register")} className="w-full px-2 py-2 font-semibold text-center text-white bg-[#0B2447] rounded dark:bg-yellow-400 dark:text-black">
+                    Register
+                  </button>
+                </div>
+              ) : (
+                <button onClick={handleLogout} className="flex items-center gap-2 px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded font-semibold w-full mt-2">
+                  <LogOut size={16} />
+                  Logout
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}

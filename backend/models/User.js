@@ -2,6 +2,11 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
+  resetOtpHash: String,
+  resetOtpExpires: Date,
+  resetOtpAttempts: { type: Number, default: 0 },
+  // track password change
+  passwordChangedAt: Date,
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true },
   passwordHash: { type: String, required: true },
@@ -26,6 +31,6 @@ const userSchema = new mongoose.Schema({
   avatarUrl: { type: String },       // /uploads/avatars/xyz.jpg
 
   createdAt: { type: Date, default: Date.now },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);
