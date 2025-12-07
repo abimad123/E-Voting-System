@@ -54,13 +54,13 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
              <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
                 alt="National Emblem" 
-                className="h-8 w-auto object-contain opacity-90 dark:invert dark:opacity-100 dark:brightness-200"
+                className="object-contain w-auto h-8 opacity-90 dark:invert dark:opacity-100 dark:brightness-200"
               />
             <div
               className="text-lg md:text-xl font-bold cursor-pointer text-[#0B2447] dark:text-white leading-tight"
               onClick={() => navigate("/dashboard")}
             >
-              Jan Seva <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
+              E Voting <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
             </div>
           </div>
 
@@ -102,21 +102,21 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-600 rounded-full hover:bg-gray-100 dark:text-yellow-400 dark:hover:bg-zinc-800 transition-colors focus:outline-none"
+              className="p-2 text-gray-600 transition-colors rounded-full hover:bg-gray-100 dark:text-yellow-400 dark:hover:bg-zinc-800 focus:outline-none"
               aria-label="Toggle theme"
             >
               {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
             </button>
 
             {token && (
-               <div className="hidden md:flex items-center gap-2 px-3 py-1 bg-gray-50 dark:bg-zinc-800 rounded-full border border-gray-200 dark:border-zinc-700">
+               <div className="items-center hidden gap-2 px-3 py-1 border border-gray-200 rounded-full md:flex bg-gray-50 dark:bg-zinc-800 dark:border-zinc-700">
                   <User size={14} className="text-[#0B2447] dark:text-yellow-400" />
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">{user?.name}</span>
                </div>
             )}
 
             {!token ? (
-              <div className="hidden md:flex gap-3">
+              <div className="hidden gap-3 md:flex">
                 <button onClick={() => navigate("/login")} className="px-4 py-1.5 text-sm font-semibold text-[#0B2447] border border-[#0B2447] rounded hover:bg-[#0B2447] hover:text-white dark:text-yellow-400 dark:border-yellow-400 dark:hover:bg-yellow-400 dark:hover:text-black transition-all">
                   Login
                 </button>
@@ -143,8 +143,8 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
 
         {/* Mobile Dropdown */}
         {mobileOpen && (
-          <div className="pb-4 md:hidden border-t border-gray-100 dark:border-zinc-800 mt-2">
-            <div className="flex flex-col gap-2 text-sm pt-4">
+          <div className="pb-4 mt-2 border-t border-gray-100 md:hidden dark:border-zinc-800">
+            <div className="flex flex-col gap-2 pt-4 text-sm">
               {token && <div className="px-2 pb-2 text-xs font-bold text-gray-400 uppercase">Signed in as {user?.name}</div>}
               
               <Link 
@@ -180,7 +180,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
                 </Link>
               )}
               
-              <div className="h-px bg-gray-200 dark:bg-zinc-800 my-1"></div>
+              <div className="h-px my-1 bg-gray-200 dark:bg-zinc-800"></div>
 
               {!token ? (
                 <div className="flex flex-col gap-2 mt-2">
@@ -192,7 +192,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
                   </button>
                 </div>
               ) : (
-                <button onClick={handleLogout} className="flex items-center gap-2 px-2 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded font-semibold w-full mt-2">
+                <button onClick={handleLogout} className="flex items-center w-full gap-2 px-2 py-2 mt-2 font-semibold text-red-600 rounded dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20">
                   <LogOut size={16} />
                   Logout
                 </button>

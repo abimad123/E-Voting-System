@@ -66,24 +66,24 @@ export default function ElectionResults() {
         
         {/* --- UNIFIED HEADER CARD (MATCHING ELECTION DETAIL) --- */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border-l-4 border-[#0B2447] dark:border-yellow-400 p-6 transition-colors duration-200">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
             
             {/* Left Side: Title & Info */}
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                 <h1 className="text-2xl font-bold text-gray-900 md:text-3xl dark:text-white">
                     {election.title}
                  </h1>
-                 <span className="px-3 py-1 text-xs font-bold uppercase rounded-full border bg-gray-100 text-gray-600 border-gray-300 dark:bg-zinc-800 dark:text-gray-400 dark:border-zinc-700">
+                 <span className="px-3 py-1 text-xs font-bold text-gray-600 uppercase transition-colors bg-gray-100 border border-gray-300 rounded-full shadow-sm dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300">
                     Results
                  </span>
               </div>
               
-              <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
+              <p className="max-w-3xl text-gray-600 dark:text-gray-300">
                 {election.description}
               </p>
 
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
                  <div className="flex items-center gap-1">
                      <Vote size={14} className="text-[#0B2447] dark:text-yellow-400" />
                      <span>Total Votes: <span className="font-bold text-gray-800 dark:text-gray-200">{totalVotes}</span></span>
@@ -101,7 +101,7 @@ export default function ElectionResults() {
             <div className="flex flex-col gap-2 min-w-[140px]">
                <button
                   onClick={() => navigate(`/elections/${id}`)}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
                >
                   <ArrowLeft size={16} />
                   Back to Details
@@ -135,11 +135,11 @@ export default function ElectionResults() {
               <table className="w-full text-sm">
                  <thead className="bg-gray-50 dark:bg-[#222] border-b border-gray-200 dark:border-zinc-700">
                     <tr>
-                       <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300">Candidate</th>
-                       <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300">Party</th>
-                       <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300 hidden md:table-cell">Description</th>
-                       <th className="px-6 py-4 text-right font-semibold text-gray-600 dark:text-gray-300">Votes</th>
-                       <th className="px-6 py-4 text-center font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                       <th className="px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300">Candidate</th>
+                       <th className="px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300">Party</th>
+                       <th className="hidden px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300 md:table-cell">Description</th>
+                       <th className="px-6 py-4 font-semibold text-right text-gray-600 dark:text-gray-300">Votes</th>
+                       <th className="px-6 py-4 font-semibold text-center text-gray-600 dark:text-gray-300">Status</th>
                     </tr>
                  </thead>
                  <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
@@ -169,17 +169,17 @@ export default function ElectionResults() {
                                    {c.party}
                                 </span>
                              </td>
-                             <td className="px-6 py-4 text-gray-500 dark:text-gray-400 hidden md:table-cell max-w-xs truncate">
+                             <td className="hidden max-w-xs px-6 py-4 text-gray-500 truncate dark:text-gray-400 md:table-cell">
                                 {c.description || "-"}
                              </td>
                              <td className="px-6 py-4 text-right">
-                                <span className="font-bold text-gray-900 dark:text-white text-base">
+                                <span className="text-base font-bold text-gray-900 dark:text-white">
                                    {c.votesCount || 0}
                                 </span>
                              </td>
                              <td className="px-6 py-4 text-center">
                                 {isWinner && totalVotes > 0 ? (
-                                   <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400 border border-green-200 dark:border-green-800">
+                                   <span className="inline-flex items-center gap-1 px-3 py-1 text-xs font-bold text-green-700 bg-green-100 border border-green-200 rounded-full dark:bg-green-900/40 dark:text-green-400 dark:border-green-800">
                                       <CheckCircle size={12} />
                                       Winner
                                    </span>

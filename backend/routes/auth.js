@@ -60,7 +60,7 @@ router.post('/register', uploadId.single('idDoc'), async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
 
-    let idNumberHash = undefined;
+    let idNumberHash;
     if (idNumber) {
       idNumberHash = crypto
         .createHash('sha256')
@@ -84,8 +84,11 @@ router.post('/register', uploadId.single('idDoc'), async (req, res) => {
       passwordHash,
       dob: parsedDob || undefined,
       idType,
-      idNumberHash,
-      idDocPath: req.file ? `/uploads/id_docs/${req.file.filename}` : undefined,
+      idNumber: idNumber || undefined,   // 👈 store plain value
+      idNumberHash,                      // 👈 and hashed value
+      idDocPath: req.file
+        ? `/uploads/id_docs/${req.file.filename}`
+        : undefined,
       verificationStatus: 'pending',
     });
 
@@ -103,25 +106,6 @@ router.post('/register', uploadId.single('idDoc'), async (req, res) => {
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
-
-router.get('/admin/users', auth, ensureAdmin, async (req, res) => {
-  try {
-    const { status } = req.query;
-    const filter = {};
-    if (status) filter.verificationStatus = status;
-
-    const users = await User.find(filter)
-      .select('-passwordHash')
-      .sort({ createdAt: -1 })
-      .lean();
-
-    res.json({ users });
-  } catch (err) {
-    console.error('admin users error:', err);
-    res.status(500).json({ msg: 'Server error' });
-  }
-});
-
 
 
 // ---------- Login ----------
@@ -238,6 +222,46 @@ router.post(
     }
   }
 );
+
+// POST /api/auth/phone
+// Save phone number once; cannot change later (no OTP for now)
+router.post('/phone', auth, async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({ msg: 'Phone number is required' });
+    }
+
+    // simple India-style validation: 10 digits
+    const phoneDigits = phone.replace(/\D/g, '');
+    if (!/^\d{10}$/.test(phoneDigits)) {
+      return res.status(400).json({ msg: 'Please enter a valid 10-digit phone number' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // do not allow updating once set
+    if (user.phone) {
+      return res.status(400).json({ msg: 'Phone number is already set and cannot be changed.' });
+    }
+
+    user.phone = phoneDigits;
+    user.phoneAddedAt = new Date();
+    await user.save();
+
+    return res.json({ msg: 'Phone number saved successfully.' });
+  } catch (err) {
+    console.error('ERROR /api/auth/phone:', err);
+    return res
+      .status(500)
+      .json({ msg: 'Unable to save phone number. Please try again later.' });
+  }
+});
+
 
 // ---------- Delete account ----------
 router.delete('/delete-account', auth, async (req, res) => {

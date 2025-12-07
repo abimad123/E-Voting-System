@@ -10,12 +10,15 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true, lowercase: true },
   passwordHash: { type: String, required: true },
+  phone: { type: String },         
+phoneAddedAt: { type: Date },     
   role: { type: String, enum: ['voter', 'admin'], default: 'voter' },
 
   // KYC fields
   dob: { type: Date },
   idType: { type: String },          // e.g. Aadhaar, VoterID, StudentID
-  idNumberHash: { type: String },    // hashed ID number
+  idNumber: { type: String },        // plain for display
+idNumberHash: { type: String },     // hashed ID number
   idDocPath: { type: String },       // uploaded ID proof
 
   // Verification status

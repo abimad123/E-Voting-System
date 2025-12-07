@@ -23,8 +23,8 @@ function checkRequiredFields(req, fields) {
   return true;
 }
 
-// 1) Request OTP (email or phone)
-router.post('/request-reset-otp', createLimiter({ max: 8 }), verifyTurnstile, async (req, res) => {
+router.post('/request-reset-otp', verifyTurnstile, async (req, res) => {
+
   try {
     if (!checkRequiredFields(req, ['identifier'])) {
       return res.status(400).json({ msg: 'Invalid request' });
@@ -77,8 +77,8 @@ router.post('/request-reset-otp', createLimiter({ max: 8 }), verifyTurnstile, as
   }
 });
 
-// 2) Verify OTP and set new password
-router.post('/verify-otp', createLimiter({ max: 15 }), async (req, res) => {
+router.post('/verify-otp', async (req, res) => {
+
   try {
     if (!checkRequiredFields(req, ['identifier', 'otp', 'password'])) {
       return res.status(400).json({ msg: 'Invalid input' });

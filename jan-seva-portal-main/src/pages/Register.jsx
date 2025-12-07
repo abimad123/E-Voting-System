@@ -1,9 +1,8 @@
-// src/pages/Register.jsx
 import React, { useState } from "react";
-// RESTORED YOUR ORIGINAL IMPORTS
 import api from "../api"; 
 import { useNavigate } from "react-router-dom";
 import { Sun, Moon } from "lucide-react";
+import { useTheme } from "../context/ThemeContext"; // Import the shared hook
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -15,17 +14,15 @@ export default function Register() {
     idNumber: "",
   });
   
-  // ALL YOUR ORIGINAL STATE VARIABLES ARE HERE
   const [confirmPassword, setConfirmPassword] = useState("");
   const [idFile, setIdFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
   
-  // Theme state for the new look
-  const [isDark, setIsDark] = useState(false); 
+  // USE THE SHARED THEME (Fixes the toggle issue)
+  const { isDark, toggleTheme } = useTheme();
+  
   const navigate = useNavigate();
-
-  const toggleTheme = () => setIsDark(!isDark);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -36,7 +33,6 @@ export default function Register() {
     }
   }
 
-  // EXACT SAME LOGIC AS YOUR OLD CODE
   async function handleSubmit(e) {
     e.preventDefault();
     
@@ -59,7 +55,6 @@ export default function Register() {
       fd.append("idNumber", form.idNumber);
       if (idFile) fd.append("idDoc", idFile);
 
-      // Calling your real API here
       const res = await api.post("/api/auth/register", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -76,39 +71,62 @@ export default function Register() {
   }
 
   return (
+    // Note: The "dark" class is also handled globally by App.jsx, 
+    // but we keep it here for local styling consistency if rendered standalone.
     <div className={isDark ? "dark" : ""}>
       <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex flex-col font-sans transition-colors duration-200">
         
-        {/* HEADER */}
-        <header className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-zinc-800 shadow-sm transition-colors duration-200">
-        
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img 
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
-                alt="National Emblem" 
-                className="h-14 w-auto object-contain opacity-90 dark:invert dark:opacity-100 dark:brightness-200"
-              />
-              <div className="flex flex-col">
-                <h1 className="text-xl md:text-2xl font-bold text-[#0B2447] dark:text-white leading-none">Jan Seva Portal</h1>
-                <p className="text-xs md:text-sm font-semibold text-[#FF9933] mt-1">Ministry of Electronics & IT, Government of India</p>
-              </div>
+        {/* --- HEADER --- */}
+        <header className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-zinc-800 shadow-sm transition-colors duration-200 relative z-10">
+               <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+                 
+                 {/* Left: Emblem & Title */}
+                 <div className="flex items-center gap-4">
+                   <img 
+                     src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
+                     alt="National Emblem" 
+                     className="object-contain w-auto h-12 opacity-90 dark:invert dark:opacity-90"
+                   />
+                  <div className="flex flex-col justify-center">
+              <h1 className="text-xl md:text-2xl font-bold text-[#0B2447] dark:text-white leading-tight">
+                E Voting <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
+              </h1>
+              <p className="text-[10px] md:text-xs font-bold text-[#FF9933] tracking-wide uppercase">
+                Ministry of Electronics & IT, Government of India
+              </p>
             </div>
-            <div className="hidden md:block text-right">
-               <img src="https://upload.wikimedia.org/wikipedia/en/9/95/Digital_India_logo.svg" alt="Digital India" className="h-10 opacity-80 dark:bg-white dark:px-1 dark:rounded"/>
-            </div>
-          </div>
-        </header>
-
-        {/* MAIN FORM SECTION */}
+                 </div>
+                 
+                 {/* Right: Theme Toggle & Digital India */}
+                 <div className="flex items-center gap-4">
+                    <button 
+                      onClick={toggleTheme}
+                      className="p-2 text-gray-600 transition-colors bg-gray-100 border border-gray-200 rounded-full dark:bg-zinc-800 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-zinc-700 dark:border-zinc-700"
+                      title="Toggle Theme"
+                    >
+                      {isDark ? <Sun size={20} /> : <Moon size={20} />}
+                    </button>
+                    <div className="hidden md:block h-8 w-[1px] bg-gray-300 dark:bg-zinc-700"></div>
+                    <img 
+                       src="https://upload.wikimedia.org/wikipedia/en/9/95/Digital_India_logo.svg" 
+                       alt="Digital India" 
+                       className="hidden w-auto h-10 md:block opacity-80 dark:bg-white dark:p-1 dark:rounded"
+                    />
+                 </div>
+               </div>
+             </header>
+             
+        {/* --- MAIN FORM SECTION --- */}
         <main className="flex-1 flex items-center justify-center p-4 bg-[url('https://www.toptal.com/designers/subtlepatterns/uploads/geometry2.png')] dark:bg-none">
-          <div className="w-full max-w-lg bg-white dark:bg-black shadow-lg rounded-t-lg overflow-hidden border border-gray-200 dark:border-yellow-400 transition-colors duration-200">
+          <div className="w-full max-w-lg overflow-hidden transition-colors duration-200 bg-white border border-gray-200 rounded-t-lg shadow-lg dark:bg-black dark:border-yellow-400">
+            
+            {/* Tricolor Strip */}
             <div className="h-1.5 w-full bg-gradient-to-r from-[#FF9933] via-white to-[#138808]"></div>
             
             <div className="p-8">
-              <div className="text-center mb-6">
+              <div className="mb-6 text-center">
                 <h2 className="text-2xl font-bold text-[#0B2447] dark:text-yellow-400">New User Registration</h2>
-                <p className="text-sm text-gray-500 dark:text-white mt-1">Create an account for E-Voting Services</p>
+                <p className="mt-1 text-sm text-gray-500 dark:text-white">Create an account for E-Voting Services</p>
               </div>
 
               {msg && (
@@ -122,9 +140,10 @@ export default function Register() {
               )}
 
               <form onSubmit={handleSubmit} className="space-y-4">
+                
                 {/* 1. Name Field */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">Full Name</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">Full Name</label>
                     <input
                     name="name"
                     value={form.name}
@@ -139,7 +158,7 @@ export default function Register() {
 
                 {/* 2. Email Field */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">Email Address</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">Email Address</label>
                     <input
                     name="email"
                     value={form.email}
@@ -152,27 +171,29 @@ export default function Register() {
                 </div>
 
                 {/* 3. Password Fields */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">Password</label>
+                        <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">Password</label>
                         <input
                         name="password"
                         value={form.password}
                         onChange={handleChange}
                         required
                         type="password"
+                        autoComplete="new-password"
                         placeholder="Create password"
                         className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">Confirm Password</label>
+                        <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">Confirm Password</label>
                         <input
                         name="confirmPassword"
                         value={confirmPassword}
                         onChange={handleChange}
                         required
                         type="password"
+                        autoComplete="new-password"
                         placeholder="Confirm password"
                         className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
                         />
@@ -181,19 +202,19 @@ export default function Register() {
 
                 {/* 4. DOB and ID Type */}
                 <div className="flex gap-4">
-                 <div className="w-1/2">
-  <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">Date of Birth</label>
-  <input
-    name="dob"
-    value={form.dob}
-    onChange={handleChange}
-    required
-    type="date"
-    className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors cursor-pointer [color-scheme:light] dark:[color-scheme:dark] dark:[&::-webkit-calendar-picker-indicator]:invert"
-  />
-</div>
                   <div className="w-1/2">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">ID Type</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">Date of Birth</label>
+                    <input
+                      name="dob"
+                      value={form.dob}
+                      onChange={handleChange}
+                      required
+                      type="date"
+                      className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors cursor-pointer [color-scheme:light] dark:[color-scheme:dark] dark:[&::-webkit-calendar-picker-indicator]:invert"
+                    />
+                  </div>
+                  <div className="w-1/2">
+                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">ID Type</label>
                     <select
                       name="idType"
                       value={form.idType}
@@ -212,7 +233,7 @@ export default function Register() {
 
                 {/* 5. ID Number */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">ID Number</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">ID Number</label>
                     <input
                     name="idNumber"
                     value={form.idNumber}
@@ -225,7 +246,7 @@ export default function Register() {
 
                 {/* 6. File Upload */}
                 <div>
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-white mb-1">Upload ID Document (Image/PDF)</label>
+                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">Upload ID Document (Image/PDF)</label>
                     <input
                     type="file"
                     accept="image/*,application/pdf"
@@ -244,7 +265,7 @@ export default function Register() {
                   {loading ? "Registering..." : "Complete Registration"}
                 </button>
 
-                <div className="text-sm text-center pt-2">
+                <div className="pt-2 text-sm text-center">
                   <span className="text-gray-600 dark:text-gray-400">Already have an account? </span>
                   <button type="button" onClick={() => navigate("/login")} className="text-[#0B2447] dark:text-yellow-400 font-bold hover:underline">
                     Login
@@ -253,24 +274,13 @@ export default function Register() {
               </form>
             </div>
             
+            {/* Footer Strip */}
             <div className="bg-gray-50 dark:bg-[#1a1a1a] px-8 py-3 text-center text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-zinc-800">
               Secure Access | IP Logged
             </div>
           </div>
         </main>
 
-        {/* FOOTER */}
-        <footer className="bg-[#1a1a1a] dark:bg-black text-gray-400 dark:text-white py-6 text-center text-xs border-t-4 border-[#FF9933]">
-          <div className="flex justify-center gap-4 mb-2">
-             <span className="hover:text-white cursor-pointer dark:hover:text-yellow-400">Website Policies</span>
-             <span>|</span>
-             <span className="hover:text-white cursor-pointer dark:hover:text-yellow-400">Help & FAQ</span>
-             <span>|</span>
-             <span className="hover:text-white cursor-pointer dark:hover:text-yellow-400">Feedback</span>
-          </div>
-          <p>© 2025 Jan Seva Portal. All rights reserved.</p>
-          <p className="mt-1">Designed and Developed by National Informatics Centre (NIC)</p>
-        </footer>
       </div>
     </div>
   );

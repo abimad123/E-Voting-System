@@ -1,5 +1,6 @@
+// src/pages/Profile.jsx
 import React, { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { 
   ArrowLeft, 
@@ -15,7 +16,8 @@ import {
   CheckCircle,
   Clock,
   XCircle,
-  Shield
+  Shield,
+  Phone
 } from "lucide-react";
 
 export default function Profile() {
@@ -30,7 +32,9 @@ export default function Profile() {
   });
 
   const [msg, setMsg] = useState(null);
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);       // avatar / delete / password
+  const [phoneDraft, setPhoneDraft] = useState(""); // new phone input
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -59,18 +63,18 @@ export default function Profile() {
     const status = user?.verificationStatus || "pending";
     if (status === "approved")
       return (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800 uppercase tracking-wide">
+        <span className="flex items-center gap-1 px-3 py-1 text-xs font-bold tracking-wide text-green-700 uppercase bg-green-100 border border-green-200 rounded-full dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
           <CheckCircle size={14} /> Approved
         </span>
       );
     if (status === "rejected")
       return (
-        <span className="flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 border border-red-200 dark:border-red-800 uppercase tracking-wide">
+        <span className="flex items-center gap-1 px-3 py-1 text-xs font-bold tracking-wide text-red-700 uppercase bg-red-100 border border-red-200 rounded-full dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
           <XCircle size={14} /> Rejected
         </span>
       );
     return (
-      <span className="flex items-center gap-1 px-3 py-1 text-xs font-bold rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 border border-yellow-200 dark:border-yellow-800 uppercase tracking-wide">
+      <span className="flex items-center gap-1 px-3 py-1 text-xs font-bold tracking-wide text-yellow-700 uppercase bg-yellow-100 border border-yellow-200 rounded-full dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800">
         <Clock size={14} /> Pending
       </span>
     );
@@ -164,19 +168,49 @@ export default function Profile() {
     navigate("/login");
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-center">
-       <div className="flex items-center gap-2 text-[#0B2447] dark:text-yellow-400 font-semibold animate-pulse">
-         <Loader2 className="animate-spin" /> Loading Profile...
-       </div>
-    </div>
-  );
+  // NEW: Save phone number once (no editing after)
+  const handleSavePhone = async () => {
+    if (!phoneDraft.trim()) {
+      setMsg({ type: "error", text: "Please enter a phone number." });
+      return;
+    }
 
-  if (!user) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-center text-gray-500">
-      User not found.
-    </div>
-  );
+    setPhoneBusy(true);
+    setMsg(null);
+    try {
+      const res = await api.post("/api/auth/phone", {
+        phone: phoneDraft.trim(),
+      });
+      // after success, attach to user and clear draft
+      setUser((u) => ({ ...u, phone: phoneDraft.trim() }));
+      setPhoneDraft("");
+      setMsg({ type: "success", text: res.data.msg || "Phone number saved." });
+    } catch (err) {
+      console.error(err);
+      setMsg({
+        type: "error",
+        text: err?.response?.data?.msg || err.message,
+      });
+    } finally {
+      setPhoneBusy(false);
+    }
+  };
+
+  if (loading)
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-center">
+        <div className="flex items-center gap-2 text-[#0B2447] dark:text-yellow-400 font-semibold animate-pulse">
+          <Loader2 className="animate-spin" /> Loading Profile...
+        </div>
+      </div>
+    );
+
+  if (!user)
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-center text-gray-500">
+        User not found.
+      </div>
+    );
 
   // build avatar URL
   const avatarSrc = user.avatarUrl
@@ -188,61 +222,71 @@ export default function Profile() {
       {/* Container Width: 1400px */}
       <div className="max-w-[1400px] mx-auto space-y-6">
         
-        {/* --- HEADER CARD (Matching "Welcome" Image Style) --- */}
+        {/* HEADER CARD */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border-l-4 border-[#0B2447] dark:border-yellow-400 p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 transition-colors duration-200">
-            
-            <div className="flex items-center gap-5">
-                {/* Avatar with Upload */}
-                <div className="relative group">
-                    <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-200 dark:bg-zinc-800 border-2 border-gray-100 dark:border-zinc-700 shadow-sm flex items-center justify-center text-3xl text-gray-400 font-bold">
-                        {avatarSrc ? (
-                            <img src={avatarSrc} alt="avatar" className="w-full h-full object-cover" />
-                        ) : (
-                            <span>{user.name?.[0]?.toUpperCase() || "U"}</span>
-                        )}
-                    </div>
-                    {/* Hover Camera Icon */}
-                    <label className="absolute inset-0 flex items-center justify-center bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                        {busy ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
-                        <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} disabled={busy} />
-                    </label>
-                </div>
-
-                {/* User Info */}
-                <div className="space-y-1">
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
-                        Welcome, <span className="text-[#0B2447] dark:text-yellow-400">{user.name}</span>
-                    </h1>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-                        {user.email}
-                    </p>
-                    <div className="flex items-center gap-2 pt-1">
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Verification Status:</span>
-                        {verificationBadge()}
-                    </div>
-                </div>
+          <div className="flex items-center gap-5">
+            {/* Avatar with Upload */}
+            <div className="relative group">
+              <div className="flex items-center justify-center w-20 h-20 overflow-hidden text-3xl font-bold text-gray-400 bg-gray-200 border-2 border-gray-100 rounded-full shadow-sm dark:bg-zinc-800 dark:border-zinc-700">
+                {avatarSrc ? (
+                  <img src={avatarSrc} alt="avatar" className="object-cover w-full h-full" />
+                ) : (
+                  <span>{user.name?.[0]?.toUpperCase() || "U"}</span>
+                )}
+              </div>
+              {/* Hover Camera Icon */}
+              <label className="absolute inset-0 flex items-center justify-center text-white transition-opacity rounded-full opacity-0 cursor-pointer bg-black/50 group-hover:opacity-100">
+                {busy ? <Loader2 size={20} className="animate-spin" /> : <Camera size={20} />}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                  disabled={busy}
+                />
+              </label>
             </div>
 
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-                <button
-                    onClick={() => navigate("/my-votes")}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0B2447] hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 rounded-lg shadow-sm transition-colors"
-                >
-                    <FileText size={18} />
-                    View My Votes
-                </button>
-                <button
-                    onClick={() => navigate("/dashboard")}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-200 dark:border-zinc-700 dark:hover:bg-zinc-700 rounded-lg shadow-sm transition-colors"
-                >
-                    <ArrowLeft size={18} />
-                    Dashboard
-                </button>
+            {/* User Info */}
+            <div className="space-y-1">
+              <h1 className="text-2xl font-bold text-gray-900 md:text-3xl dark:text-white">
+                Welcome,{" "}
+                <span className="text-[#0B2447] dark:text-yellow-400">
+                  {user.name}
+                </span>
+              </h1>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                {user.email}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                  Verification Status:
+                </span>
+                {verificationBadge()}
+              </div>
             </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col items-center w-full gap-3 sm:flex-row md:w-auto">
+            <button
+              onClick={() => navigate("/my-votes")}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0B2447] hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 rounded-lg shadow-sm transition-colors"
+            >
+              <FileText size={18} />
+              View My Votes
+            </button>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-200 dark:border-zinc-700 dark:hover:bg-zinc-700 rounded-lg shadow-sm transition-colors"
+            >
+              <ArrowLeft size={18} />
+              Dashboard
+            </button>
+          </div>
         </div>
         
-        {/* --- MESSAGES --- */}
+        {/* MESSAGES */}
         {msg && (
           <div
             className={`p-4 rounded-lg flex items-center gap-2 border-l-4 ${
@@ -251,134 +295,239 @@ export default function Profile() {
                 : "bg-red-50 text-red-800 border-red-500 dark:bg-red-900/20 dark:text-red-400"
             }`}
           >
-            {msg.type === 'error' ? <AlertCircle size={20}/> : <CheckCircle size={20}/>}
+            {msg.type === "error" ? <AlertCircle size={20} /> : <CheckCircle size={20} />}
             {msg.text}
           </div>
         )}
 
-        {/* --- MAIN CONTENT GRID --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* --- LEFT COLUMN: PERSONAL DETAILS --- */}
-            <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 p-6 transition-colors duration-200">
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100 dark:border-zinc-800">
-                        <User size={20} className="text-[#0B2447] dark:text-yellow-400"/>
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Personal Details</h2>
-                    </div>
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* LEFT: PERSONAL DETAILS */}
+          <div className="space-y-6 lg:col-span-2">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 p-6 transition-colors duration-200">
+              <div className="flex items-center gap-2 pb-4 mb-6 border-b border-gray-100 dark:border-zinc-800">
+                <User size={20} className="text-[#0B2447] dark:text-yellow-400" />
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Personal Details
+                </h2>
+              </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Full Name</label>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
-                                {user.name}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Email Address</label>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
-                                {user.email}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Role</label>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800 capitalize flex items-center gap-2">
-                                {user.role === 'admin' && <Shield size={14} className="text-red-500" />}
-                                {user.role}
-                            </div>
-                        </div>
-                        <div className="space-y-1">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">Date of Birth</label>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
-                                {user.dob ? new Date(user.dob).toLocaleDateString("en-IN") : "Not set"}
-                            </div>
-                        </div>
-                        <div className="space-y-1 sm:col-span-2">
-                            <label className="text-xs font-semibold text-gray-500 dark:text-gray-500 uppercase">ID Document Type</label>
-                            <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
-                                {user.idType || "Not provided"}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-8 pt-6 border-t border-gray-100 dark:border-zinc-800 flex flex-wrap gap-4">
-                        <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-colors"
-                        >
-                            <LogOut size={16} />
-                            Logout Session
-                        </button>
-                        <button
-                            onClick={handleDeleteAccount}
-                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-white border border-red-200 rounded-lg hover:bg-red-50 dark:bg-zinc-900 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-900/20 transition-colors ml-auto"
-                        >
-                            <Trash2 size={16} />
-                            Delete Account
-                        </button>
-                    </div>
+              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    Full Name
+                  </label>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
+                    {user.name}
+                  </div>
                 </div>
-            </div>
 
-            {/* --- RIGHT COLUMN: SECURITY --- */}
-            <div className="lg:col-span-1">
-                <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 p-6 transition-colors duration-200 h-full">
-                    <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100 dark:border-zinc-800">
-                        <Lock size={20} className="text-[#0B2447] dark:text-yellow-400" />
-                        <h2 className="text-lg font-bold text-gray-900 dark:text-white">Security</h2>
-                    </div>
-                    
-                    <form onSubmit={handleChangePassword} className="space-y-4">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Current Password</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={pwdForm.currentPassword}
-                                onChange={(e) => setPwdForm({ ...pwdForm, currentPassword: e.target.value })}
-                                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 transition-colors"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">New Password</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={pwdForm.newPassword}
-                                onChange={(e) => setPwdForm({ ...pwdForm, newPassword: e.target.value })}
-                                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 transition-colors"
-                                required
-                            />
-                        </div>
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1">Confirm New Password</label>
-                            <input
-                                type="password"
-                                placeholder="••••••••"
-                                value={pwdForm.confirmPassword}
-                                onChange={(e) => setPwdForm({ ...pwdForm, confirmPassword: e.target.value })}
-                                className="w-full px-3 py-2 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 transition-colors"
-                                required
-                            />
-                        </div>
-                        
-                        <button
-                            type="submit"
-                            disabled={busy}
-                            className={`w-full flex items-center justify-center gap-2 px-4 py-2 mt-4 rounded-lg text-sm font-bold text-white shadow-md transition-colors ${
-                                busy 
-                                ? "bg-gray-400 cursor-not-allowed" 
-                                : "bg-[#0B2447] hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
-                            }`}
-                        >
-                            {busy ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                            {busy ? "Updating..." : "Update Password"}
-                        </button>
-                    </form>
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    Email Address
+                  </label>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
+                    {user.email}
+                  </div>
                 </div>
-            </div>
 
+                {/* PHONE BLOCK */}
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    Phone Number
+                  </label>
+
+                  {user.phone ? (
+                    // once set, read-only display
+                    <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
+                      <Phone size={16} className="text-[#0B2447] dark:text-yellow-400" />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {user.phone}
+                      </span>
+                      <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                        <CheckCircle size={12} /> Saved
+                      </span>
+                    </div>
+                  ) : (
+                    // first time: allow entering once
+                    <div className="flex flex-col gap-2 sm:flex-row">
+                      <div className="relative flex-1">
+                        <input
+                          type="tel"
+                          placeholder="Enter phone number"
+                          value={phoneDraft}
+                          onChange={(e) => setPhoneDraft(e.target.value)}
+                          className="w-full pl-9 pr-3 py-2.5 border border-gray-300 dark:border-zinc-700 rounded-lg bg-gray-50 dark:bg-[#111] text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400"
+                          disabled={phoneBusy}
+                        />
+                        <Phone className="absolute text-gray-400 -translate-y-1/2 left-3 top-1/2" size={16} />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleSavePhone}
+                        disabled={phoneBusy}
+                        className="px-4 py-2.5 text-sm font-semibold rounded-lg bg-[#0B2447] text-white hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {phoneBusy && <Loader2 size={14} className="animate-spin" />}
+                        {phoneBusy ? "Saving..." : "Save Number"}
+                      </button>
+                    </div>
+                  )}
+                  <p className="mt-1 text-[11px] text-gray-500 dark:text-gray-500">
+                    Phone number can be added once and used for future security features.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    Role
+                  </label>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800 capitalize flex items-center gap-2">
+                    {user.role === "admin" && (
+                      <Shield size={14} className="text-red-500" />
+                    )}
+                    {user.role}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    Date of Birth
+                  </label>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
+                    {user.dob
+                      ? new Date(user.dob).toLocaleDateString("en-IN")
+                      : "Not set"}
+                  </div>
+                </div>
+
+                <div className="space-y-1 ">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    ID Document Type
+                  </label>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
+                    {user.idType || "Not provided"}
+                  </div>
+                </div>
+
+                {/* NEW: ID NUMBER DISPLAY (UNMASKED) */}
+                <div className="space-y-1 ">
+                  <label className="text-xs font-semibold text-gray-500 uppercase dark:text-gray-500">
+                    ID Document Number
+                  </label>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white p-3 bg-gray-50 dark:bg-[#111] rounded border border-gray-200 dark:border-zinc-800">
+                    {user.idNumber || "Not provided"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-4 pt-6 mt-8 border-t border-gray-100 dark:border-zinc-800">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
+                >
+                  <LogOut size={16} />
+                  Logout Session
+                </button>
+                <button
+                  onClick={handleDeleteAccount}
+                  className="flex items-center gap-2 px-4 py-2 ml-auto text-sm font-medium text-red-600 transition-colors bg-white border border-red-200 rounded-lg hover:bg-red-50 dark:bg-zinc-900 dark:text-red-400 dark:border-red-900/50 dark:hover:bg-red-900/20"
+                >
+                  <Trash2 size={16} />
+                  Delete Account
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT: SECURITY */}
+          <div className="lg:col-span-1">
+            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 p-6 transition-colors duration-200 h-full">
+              <div className="flex items-center gap-2 pb-4 mb-6 border-b border-gray-100 dark:border-zinc-800">
+                <Lock size={20} className="text-[#0B2447] dark:text-yellow-400" />
+                <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                  Security
+                </h2>
+              </div>
+
+             <form onSubmit={handleChangePassword} className="space-y-4">
+  {/* Hidden username for accessibility/password managers */}
+  <input
+    type="email"
+    name="fake-username"
+    autoComplete="username"
+    value={user.email}
+    readOnly
+    className="hidden"
+  />
+                <div>
+                  <label className="block mb-1 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={pwdForm.currentPassword}
+                     autoComplete="current-password"
+                    onChange={(e) =>
+                      setPwdForm({ ...pwdForm, currentPassword: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 transition-colors"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={pwdForm.newPassword}
+                     autoComplete="current-password"
+                    onChange={(e) =>
+                      setPwdForm({ ...pwdForm, newPassword: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 transition-colors"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block mb-1 text-xs font-semibold text-gray-500 uppercase dark:text-gray-400">
+                    Confirm New Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••"
+                    value={pwdForm.confirmPassword}
+                     autoComplete="current-password"
+                    onChange={(e) =>
+                      setPwdForm({ ...pwdForm, confirmPassword: e.target.value })
+                    }
+                    className="w-full px-3 py-2 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 transition-colors"
+                    required
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 mt-4 rounded-lg text-sm font-bold text-white shadow-md transition-colors ${
+                    busy
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-[#0B2447] hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
+                  }`}
+                >
+                  {busy ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Save size={16} />
+                  )}
+                  {busy ? "Updating..." : "Update Password"}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     </div>
