@@ -101,45 +101,57 @@ export default function Login() {
     // because the ThemeProvider in App.jsx handles the global wrapper.
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex flex-col font-sans transition-colors duration-200">
       
-      {/* --- HEADER --- */}
-      <header className="bg-white dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-zinc-800 shadow-sm transition-colors duration-200 relative z-10">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+      <header className="bg-white dark:bg-[#1a1a1a] shadow-md border-b border-gray-200 dark:border-zinc-800 relative z-20">
+        
+        {/* 1. Top Govt Strip */}
+        <div className="bg-[#0B2447] dark:bg-black text-white text-[10px] md:text-xs font-semibold py-1.5 px-4 border-b border-yellow-500">
+            <div className="max-w-[1400px] mx-auto flex justify-between items-center">
+                <span>GOVERNMENT OF INDIA</span>
+                <span>MINISTRY OF ELECTRONICS & IT</span>
+            </div>
+        </div>
+
+        {/* 2. Main Header Content */}
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
           
           {/* Left: Emblem & Title */}
           <div className="flex items-center gap-4">
             <img 
               src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
               alt="National Emblem" 
-              className="object-contain w-auto h-12 opacity-90 dark:invert dark:opacity-90"
+              className="object-contain w-auto h-14 dark:invert dark:brightness-200 drop-shadow-sm"
             />
-            <div className="flex flex-col justify-center">
-              <h1 className="text-xl md:text-2xl font-bold text-[#0B2447] dark:text-white leading-tight">
-                E Voting <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
+            <div className="flex flex-col">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0B2447] dark:text-white leading-none tracking-tight">
+                E Voting <span className="text-[#FF9933]">Portal</span>
               </h1>
-              <p className="text-[10px] md:text-xs font-bold text-[#FF9933] tracking-wide uppercase">
-                Ministry of Electronics & IT, Government of India
+              <p className="mt-1 text-xs font-semibold text-gray-500 md:text-sm dark:text-gray-400">
+                National E-Voting Platform
               </p>
             </div>
           </div>
           
           {/* Right: Theme Toggle & Digital India */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
              <button 
                onClick={toggleTheme}
-               className="p-2 text-gray-600 transition-colors bg-gray-100 border border-gray-200 rounded-full dark:bg-zinc-800 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-zinc-700 dark:border-zinc-700"
-               title="Toggle Theme"
+               className="p-2.5 rounded-full bg-gray-50 text-gray-600 border border-gray-200 dark:bg-zinc-800 dark:text-yellow-400 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all shadow-sm"
+               title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
              >
                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
              </button>
-             <div className="hidden md:block h-8 w-[1px] bg-gray-300 dark:bg-zinc-700"></div>
+             
+             <div className="hidden w-px h-10 bg-gray-300 md:block dark:bg-zinc-700"></div>
+             
              <img 
                 src="https://upload.wikimedia.org/wikipedia/en/9/95/Digital_India_logo.svg" 
                 alt="Digital India" 
-                className="hidden w-auto h-10 md:block opacity-80 dark:bg-white dark:p-1 dark:rounded"
+                className="hidden w-auto h-12 transition-opacity md:block opacity-90 hover:opacity-100 dark:bg-white dark:p-1 dark:rounded-md"
              />
           </div>
         </div>
       </header>
+
 
       {/* --- MAIN CONTENT --- */}
       <main className="relative flex items-center justify-center flex-1 p-4">

@@ -21,7 +21,8 @@ import {
   EyeOff,
   LogOut,
   ShieldCheck,
-  Loader2
+  Loader2,
+   MessageSquare, 
 } from "lucide-react";
 
 export default function AdminPanel() {
@@ -339,13 +340,14 @@ const [elRes, arRes, uRes, logRes] = await Promise.all([
 
             {/* Actions */}
             <div className="flex flex-col items-center w-full gap-3 sm:flex-row md:w-auto">
-                <button
-                    onClick={() => navigate("/dashboard")}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 transition-colors shadow-sm rounded-lg"
-                >
-                    <ArrowLeft size={18} />
-                    Back to Dashboard
-                </button>
+              <button
+  onClick={() => navigate("/admin/support")}
+  className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#0B2447] hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 rounded-lg shadow-sm transition-colors"
+>
+  <MessageSquare size={18} />
+  Support Inbox
+</button>
+               
             </div>
         </div>
 
@@ -360,6 +362,7 @@ const [elRes, arRes, uRes, logRes] = await Promise.all([
             {msg.text}
           </div>
         )}
+        
 
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             

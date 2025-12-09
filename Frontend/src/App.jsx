@@ -24,10 +24,12 @@ import ElectionResults from "./pages/ElectionResults";
 import Profile from "./pages/Profile";
 import Help from "./pages/HelpFAQ";
 import AdminPanel from "./pages/AdminPanel";
+import Contact from "./pages/Contact";
 import MyVotes from './pages/MyVotes';  
 import ForgotOtp from "./pages/ForgotOtp";
 import VerifyOtp from "./pages/VerifyOtp";
 import AdminUserReview from "./pages/AdminUserReview";
+import AdminSupport from "./pages/AdminSupport";
 
 // --- NAVBAR COMPONENT ---
 const Navbar = () => {
@@ -39,6 +41,7 @@ const Navbar = () => {
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: <LayoutDashboard size={18} /> },
     { name: 'Help', path: '/help', icon: <HelpCircle size={18} /> },
+    {name: 'Contact', path: '/contact', icon: <HelpCircle size={18} />},
     { name: 'Profile', path: '/profile', icon: <UserCircle size={18} /> },
   ];
 
@@ -51,101 +54,120 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-50 w-full transition-colors duration-300 bg-white border-b border-gray-200 shadow-sm dark:bg-gray-900 dark:border-gray-700">
-      <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          
-          {/* Logo Section */}
-           <div className="flex items-center gap-4">
-            <img 
-              src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
-              alt="National Emblem" 
-              className="object-contain w-auto h-12 opacity-90 dark:invert dark:opacity-90"
-            />
-            <div className="flex flex-col justify-center">
-              <h1 className="text-xl md:text-2xl font-bold text-[#0B2447] dark:text-white leading-tight">
-                E Voting <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
-              </h1>
-              <p className="text-[10px] md:text-xs font-bold text-[#FF9933] tracking-wide uppercase">
-                Ministry of Electronics & IT, Government of India
-              </p>
-            </div>
+   <nav className="sticky top-0 z-50 w-full transition-colors duration-300 bg-white shadow-md dark:bg-[#1a1a1a] border-b border-gray-200 dark:border-zinc-800">
+      
+      {/* 1. Top Govt Strip */}
+      <div className="bg-[#0B2447] dark:bg-black text-white text-[10px] md:text-xs font-semibold py-1.5 px-4 border-b border-yellow-500">
+          <div className="max-w-[1400px] mx-auto flex justify-between items-center">
+              <span>GOVERNMENT OF INDIA</span>
+              <span>MINISTRY OF ELECTRONICS & IT</span>
           </div>
+      </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden h-full space-x-8 md:flex">
+      {/* 2. Main Header Content */}
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-3 flex items-center justify-between">
+        
+        {/* Left: Emblem & Title */}
+        <Link to="/" className="flex items-center gap-4 group">
+          <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
+            alt="National Emblem" 
+            className="object-contain w-auto h-12 transition-transform opacity-90 dark:invert dark:opacity-90 group-hover:scale-105"
+          />
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl md:text-2xl font-bold text-[#0B2447] dark:text-white leading-tight">
+              E Voting <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
+            </h1>
+            <p className="text-[10px] md:text-xs font-bold text-[#FF9933] tracking-wide uppercase">
+              National E-Voting Platform
+            </p>
+          </div>
+        </Link>
+
+        {/* Center: Desktop Navigation */}
+        <div className="items-center hidden h-full space-x-1 lg:flex">
             {navLinks.map((link) => (
-              <Link
+                <Link
                 key={link.name}
                 to={link.path}
-                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium h-full transition-colors duration-200
-                  ${isActive(link.path)
-                    ? 'border-blue-900 text-gray-900 dark:border-blue-400 dark:text-white' 
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-                  }`}
-              >
+                className={`inline-flex items-center px-4 py-2 text-sm font-bold rounded-full transition-all duration-200
+                    ${isActive(link.path)
+                    ? 'bg-[#0B2447] text-white dark:bg-yellow-400 dark:text-black shadow-md' 
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-[#0B2447] dark:text-gray-300 dark:hover:bg-zinc-800 dark:hover:text-white'
+                    }`}
+                >
+                <span className="mr-2">{link.icon}</span>
                 {link.name}
-              </Link>
+                </Link>
             ))}
-          </div>
+        </div>
+        
+        {/* Right: Actions */}
+        <div className="flex items-center gap-4">
+           
+           {/* Theme Toggle */}
+           <button 
+             onClick={toggleTheme}
+             className="p-2 text-gray-600 transition-colors bg-gray-100 border border-gray-200 rounded-full dark:bg-zinc-800 dark:text-yellow-400 hover:bg-gray-200 dark:hover:bg-zinc-700 dark:border-zinc-700"
+             title="Toggle Theme"
+           >
+             {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+           </button>
 
-          {/* Right Side Actions */}
-          <div className="items-center hidden space-x-4 md:flex">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 text-gray-500 transition-colors rounded-full hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 focus:outline-none"
-              aria-label="Toggle Dark Mode"
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
+           {/* Digital India Logo (Hidden on small screens) */}
+           <div className="hidden md:block h-8 w-[1px] bg-gray-300 dark:bg-zinc-700"></div>
+           <img 
+              src="https://upload.wikimedia.org/wikipedia/en/9/95/Digital_India_logo.svg" 
+              alt="Digital India" 
+              className="hidden w-auto h-10 opacity-80 md:block dark:bg-white dark:p-1 dark:rounded"
+           />
 
-            {/* Logout Button */}
-            <button 
+           {/* Logout Button (Desktop) */}
+           <button 
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 transition-colors border border-red-200 rounded-md hover:bg-red-50 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-900/20">
+              className="items-center hidden gap-2 px-4 py-2 ml-2 text-sm font-bold text-white transition-colors bg-red-600 rounded-lg shadow-sm md:flex hover:bg-red-700"
+           >
               <LogOut size={16} />
-              <span>Logout</span>
-            </button>
-          </div>
+              Logout
+           </button>
 
-          {/* Mobile Menu Button */}
-          <div className="flex items-center -mr-2 md:hidden">
-             <button onClick={toggleTheme} className="p-2 mr-2 text-gray-500 dark:text-gray-400">
-               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-             </button>
-             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="inline-flex items-center justify-center p-2 text-gray-400 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
+           {/* Mobile Menu Toggle */}
+           <div className="flex items-center md:hidden">
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="inline-flex items-center justify-center p-2 text-gray-600 rounded-md hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-zinc-800"
+              >
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
+           </div>
         </div>
       </div>
-      
-      {/* Mobile Menu */}
+
+      {/* Mobile Menu Dropdown */}
       {isMobileMenuOpen && (
-        <div className="bg-white border-b border-gray-200 md:hidden dark:bg-gray-900 dark:border-gray-700">
-          <div className="pt-2 pb-3 space-y-1">
+        <div className="bg-white border-b border-gray-200 md:hidden dark:bg-[#111] dark:border-zinc-800">
+          <div className="px-4 pt-2 pb-4 space-y-2">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 to={link.path}
-                className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center px-4 py-3 text-base font-medium rounded-lg transition-colors
                   ${isActive(link.path)
-                    ? 'bg-blue-50 border-blue-900 text-blue-700 dark:bg-blue-900/20 dark:border-blue-400 dark:text-blue-300'
-                    : 'border-transparent text-gray-500 dark:text-gray-400'
+                    ? 'bg-blue-50 text-[#0B2447] border border-blue-100 dark:bg-zinc-800 dark:text-yellow-400 dark:border-zinc-700'
+                    : 'text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-zinc-800'
                   }`}
               >
+                <span className="mr-3">{link.icon}</span>
                 {link.name}
               </Link>
             ))}
-            <div className="pt-4 mt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="pt-4 mt-2 border-t border-gray-100 dark:border-zinc-800">
                <button 
                  onClick={handleLogout}
-                 className="block w-full px-4 py-2 text-base font-medium text-left text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-gray-800"
+                 className="flex items-center w-full px-4 py-3 text-base font-medium text-left text-white bg-red-600 rounded-lg hover:bg-red-700"
                >
+                 <LogOut size={18} className="mr-3"/>
                  Sign out
                </button>
             </div>
@@ -177,7 +199,7 @@ function AdminRoute({ children }) {
 
 function Layout({ children }) {
   const location = useLocation();
-  const hideNav = ["/login", "/register", "/forgot-password", "/verify-otp"].includes(location.pathname);
+  const hideNav = ["/login", "/register", "/forgot-password", "/verify-otp", "/contact"].includes(location.pathname);
   
   return (
     // NOTE: The ThemeProvider inside App now handles the outer "dark" class and background colors
@@ -220,6 +242,9 @@ export default function App() {
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/admin/support" element={<AdminSupport />} />
+   
           </Routes>
         </Layout>
       </Router>

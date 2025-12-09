@@ -7,7 +7,9 @@ const authRoutes = require('./routes/auth');
 const electionRoutes = require('./routes/elections');
 const voteRoutes = require('./routes/votes');
 const adminRoutes = require('./routes/admin');
-const authOtpRouter = require('./routes/authOtpReset');
+const authOtpRouter = require('./routes/authOtpReset'); 
+const supportRoutes = require('./routes/support'); 
+ 
 
 const app = express();
 
@@ -21,32 +23,29 @@ app.use(cors({
   credentials: true,
 }));
 
-// Preflight handler (safe — avoids wildcard route parsing issues)
+// Preflight handler
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
 });
 
-// --------------------------------------------------
-// Core Middlewares
-// --------------------------------------------------
 app.use(express.json());
 
-// Serve uploaded ID documents
+// Serve uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --------------------------------------------------
-// API Routes
-// --------------------------------------------------
-app.use('/api/auth', authOtpRouter);  // OTP routes FIRST
-app.use('/api/auth', authRoutes);     // normal auth routes
+// API routes
+app.use('/api/auth', authOtpRouter);
+app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/elections', electionRoutes);
 app.use('/api', voteRoutes);
 
-// --------------------------------------------------
+
+// ✅ mount support routes here
+app.use('/api/support', supportRoutes);
+
 // Health check
-// --------------------------------------------------
 app.get('/', (req, res) => {
   res.send('E-Voting System Backend Running ✅');
 });
