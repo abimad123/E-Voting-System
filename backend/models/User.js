@@ -5,6 +5,10 @@ const userSchema = new mongoose.Schema({
   resetOtpHash: String,
   resetOtpExpires: Date,
   resetOtpAttempts: { type: Number, default: 0 },
+  resetOtp: { type: String },
+resetOtpExpires: { type: Date },
+resetOtpAttempts: { type: Number, default: 0 },
+resetOtpToken: { type: String },
   // track password change
   passwordChangedAt: Date,
   name: { type: String, required: true },

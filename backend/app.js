@@ -9,7 +9,6 @@ const voteRoutes = require('./routes/votes');
 const adminRoutes = require('./routes/admin');
 const authOtpRouter = require('./routes/authOtpReset'); 
 const supportRoutes = require('./routes/support'); 
- 
 
 const app = express();
 

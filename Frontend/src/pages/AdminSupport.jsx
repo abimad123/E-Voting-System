@@ -166,7 +166,7 @@ export default function AdminSupport() {
           <div className="flex flex-col items-stretch gap-2 sm:flex-row">
             <button
               onClick={() => navigate("/admin")}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm md:text-sm hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-200 dark:border-zinc-700 dark:hover:bg-zinc-700"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 transition-colors bg-white border border-gray-300 rounded-lg shadow-sm md:text-sm hover:bg-gray-50 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
             >
               <ArrowLeft size={16} />
               Back to Admin Panel

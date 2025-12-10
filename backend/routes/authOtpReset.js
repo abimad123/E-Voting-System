@@ -1,122 +1,173 @@
 // backend/routes/authOtpReset.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const User = require('../models/User');
-const { genNumericOtp, sha256 } = require('../utils/crypto');
-const sendEmail = require('../utils/email');
-const sendSms = require('../utils/sms'); // optional
-const bcrypt = require('bcryptjs');
-const verifyTurnstile = require('../middleware/verifyTurnstile');
-const createLimiter = require('../middleware/rateLimiter'); // ensure path matches your folder
+const crypto = require("crypto");
 
-// Config
-const OTP_EXPIRE_MIN = +(process.env.OTP_EXPIRE_MIN || 10);
-const OTP_MAX_ATTEMPTS = +(process.env.OTP_MAX_ATTEMPTS || 5);
+const User = require("../models/User");
+const sendEmail = require("../utils/sendEmail");
+const verifyTurnstile = require("../middleware/verifyTurnstile");
 
-// simple manual validator
-function checkRequiredFields(req, fields) {
-  for (const f of fields) {
-    if (!req.body || typeof req.body[f] === 'undefined' || req.body[f] === '') {
-      return false;
-    }
-  }
-  return true;
+// helper to generate numeric 6-digit OTP
+function generateOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-router.post('/request-reset-otp', verifyTurnstile, async (req, res) => {
-
+/**
+ * POST /api/auth/request-reset-otp
+ * body: { identifier, via, turnstile }
+ */
+router.post("/request-reset-otp", verifyTurnstile, async (req, res) => {
   try {
-    if (!checkRequiredFields(req, ['identifier'])) {
-      return res.status(400).json({ msg: 'Invalid request' });
+    const { identifier, via } = req.body;
+
+    if (!identifier) {
+      return res
+        .status(400)
+        .json({ msg: "Email address is required for password recovery." });
     }
 
-    const { identifier, via = 'email' } = req.body;
     const user = await User.findOne({ email: identifier });
-
-    // generic response to avoid user enumeration
+    // For security, do NOT reveal whether user exists
     if (!user) {
-      return res.json({ msg: 'If that account exists you will receive a code shortly.' });
+      return res.json({
+        msg:
+          "If that account exists, you will receive an OTP shortly on your email.",
+      });
     }
 
-    // generate OTP and store hashed
-    const otp = genNumericOtp(6);
-    console.log('[DEV] Generated OTP for', identifier, ':', otp); // dev-only: remove in prod
-    const otpHash = sha256(otp);
-    user.resetOtpHash = otpHash;
-    user.resetOtpExpires = new Date(Date.now() + OTP_EXPIRE_MIN * 60 * 1000);
+    // generate OTP & expiry
+    const otp = generateOtp();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    user.resetOtp = otp;
+    user.resetOtpExpires = new Date(expiresAt);
     user.resetOtpAttempts = 0;
     await user.save();
 
-    // send via email or sms
-    try {
-      if (via === 'sms' && process.env.TWILIO_SID) {
-        await sendSms(user.phone || identifier, `Your reset code: ${otp} (valid ${OTP_EXPIRE_MIN} min)`);
-      } else {
-        const html = `
-          <p>Dear Citizen,</p>
-          <p>Your One-Time Password (OTP) for accessing the <strong>E-Voting Portal</strong> is:</p>
-          <h2 style="color:#0B2447; font-size:28px; margin:12px 0;">${otp}</h2>
-          <p>This OTP is valid for <strong>${OTP_EXPIRE_MIN} minutes</strong>. Please do not share it with anyone.</p>
-          <p>If you did not request this, please ignore this message.</p>
-          <br>
-          <p>Regards,<br><strong>E-Voting Seva Team</strong></p>
-        `;
-        await sendEmail(user.email, 'Your OTP for E-Voting Portal', html);
-      }
-    } catch (sendErr) {
-      console.error('ERROR sending OTP (non-fatal):', sendErr);
-      // still return generic response so attacker cannot enumerate or deduce send failures
-      return res.status(500).json({ msg: 'Unable to send code. Please try again later.' });
-    }
+    const textBody = `
+Dear ${user.name || "Voter"},
 
-    // success response
-    return res.json({ msg: 'If that account exists you will receive a code shortly.' });
+You have requested to reset the password for your E-Voting account.
+
+Your One-Time Password (OTP) is:
+
+    ${otp}
+
+This OTP is valid for 10 minutes. Do NOT share it with anyone.
+
+If you did not request this, you can safely ignore this email.
+
+Regards,
+Official E-Voting Support
+`;
+
+    await sendEmail(
+      user.email,
+      "E-Voting Password Reset OTP",
+      textBody
+    );
+
+    return res.json({
+      msg:
+        "If that account exists, you will receive an OTP shortly on your email.",
+    });
   } catch (err) {
-    console.error('ERROR /request-reset-otp:', err);
-    return res.status(500).json({ msg: 'Unable to process request. Please try again later.' });
+    console.error("request-reset-otp error:", err);
+    return res.status(500).json({
+      msg: "Server error while generating OTP.",
+      error: err.message,
+    });
   }
 });
 
-router.post('/verify-otp', async (req, res) => {
-
+/**
+ * POST /api/auth/verify-reset-otp
+ * body: { identifier, otp }
+ */
+router.post("/verify-reset-otp", async (req, res) => {
   try {
-    if (!checkRequiredFields(req, ['identifier', 'otp', 'password'])) {
-      return res.status(400).json({ msg: 'Invalid input' });
+    const { identifier, otp } = req.body;
+
+    if (!identifier || !otp) {
+      return res.status(400).json({ msg: "Email and OTP are required." });
     }
-    const { identifier, otp, password } = req.body;
+
     const user = await User.findOne({ email: identifier });
-
-    if (!user || !user.resetOtpHash || !user.resetOtpExpires) {
-      return res.status(400).json({ msg: 'Invalid or expired code' });
-    }
-    if (user.resetOtpExpires < new Date()) {
-      return res.status(400).json({ msg: 'Invalid or expired code' });
-    }
-    if ((user.resetOtpAttempts || 0) >= OTP_MAX_ATTEMPTS) {
-      return res.status(429).json({ msg: 'Too many attempts' });
+    if (!user || !user.resetOtp || !user.resetOtpExpires) {
+      return res.status(400).json({ msg: "Invalid or expired OTP." });
     }
 
-    const otpHash = sha256(otp);
-    if (otpHash !== user.resetOtpHash) {
-      user.resetOtpAttempts = (user.resetOtpAttempts || 0) + 1;
-      await user.save();
-      return res.status(400).json({ msg: 'Invalid code' });
+    if (user.resetOtpExpires.getTime() < Date.now()) {
+      return res.status(400).json({ msg: "OTP has expired. Please request a new one." });
     }
 
-    // success => reset password
-    user.passwordHash = await bcrypt.hash(password, 12);
-    user.resetOtpHash = undefined;
-    user.resetOtpExpires = undefined;
-    user.resetOtpAttempts = 0;
-    user.passwordChangedAt = new Date();
+    // optional: track attempts
+    user.resetOtpAttempts = (user.resetOtpAttempts || 0) + 1;
+    if (user.resetOtpAttempts > 5) {
+      return res.status(400).json({
+        msg: "Too many wrong attempts. Please request a new OTP.",
+      });
+    }
+
+    if (user.resetOtp !== otp) {
+      await user.save(); // save attempts increment
+      return res.status(400).json({ msg: "Incorrect OTP." });
+    }
+
+    // OTP is correct – mark as verified with a short token for reset step
+    const resetToken = crypto.randomBytes(20).toString("hex");
+    user.resetOtpToken = resetToken;
     await user.save();
 
-    // optionally revoke sessions/tokens here
-
-    return res.json({ msg: 'Password reset successful' });
+    return res.json({
+      msg: "OTP verified. You can now reset your password.",
+      resetToken,
+    });
   } catch (err) {
-    console.error('ERROR /verify-otp:', err);
-    return res.status(500).json({ msg: 'Unable to process request. Please try again later.' });
+    console.error("verify-reset-otp error:", err);
+    return res.status(500).json({
+      msg: "Server error while verifying OTP.",
+      error: err.message,
+    });
+  }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * body: { identifier, resetToken, newPassword }
+ */
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { identifier, resetToken, newPassword } = req.body;
+
+    if (!identifier || !resetToken || !newPassword) {
+      return res
+        .status(400)
+        .json({ msg: "Email, token and new password are required." });
+    }
+
+    const user = await User.findOne({ email: identifier });
+    if (!user || !user.resetOtpToken || user.resetOtpToken !== resetToken) {
+      return res.status(400).json({ msg: "Invalid reset token." });
+    }
+
+    const bcrypt = require("bcryptjs");
+    user.passwordHash = await bcrypt.hash(newPassword, 10);
+
+    // clear OTP data
+    user.resetOtp = undefined;
+    user.resetOtpExpires = undefined;
+    user.resetOtpAttempts = undefined;
+    user.resetOtpToken = undefined;
+
+    await user.save();
+
+    return res.json({ msg: "Password has been reset successfully." });
+  } catch (err) {
+    console.error("reset-password error:", err);
+    return res
+      .status(500)
+      .json({ msg: "Server error while resetting password.", error: err.message });
   }
 });
 
