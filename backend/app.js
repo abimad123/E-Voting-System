@@ -1,7 +1,7 @@
 // backend/app.js
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
+const path = require('path'); // ✅ Imported once here
 
 const authRoutes = require('./routes/auth');
 const electionRoutes = require('./routes/elections');
@@ -30,7 +30,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Serve uploads
+// Serve uploads (This handles the images)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API routes
@@ -39,7 +39,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/elections', electionRoutes);
 app.use('/api', voteRoutes);
-
 
 // ✅ mount support routes here
 app.use('/api/support', supportRoutes);

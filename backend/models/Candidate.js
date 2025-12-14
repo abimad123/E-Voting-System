@@ -5,6 +5,7 @@ const candidateSchema = new mongoose.Schema({
   name: { type: String, required: true },
   party: String,
   description: String,
+  iconUrl: { type: String },
   votesCount: { type: Number, default: 0 }
 });
 

@@ -1,8 +1,12 @@
 import React, { useState } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
-import { Sun, Moon } from "lucide-react";
-import { useTheme } from "../context/ThemeContext"; // shared hook
+import { motion } from 'framer-motion';
+import { 
+  Sun, Moon, User, Mail, Lock, Calendar, CreditCard, Upload, 
+  Check, Loader2, Eye, EyeOff, ShieldCheck, FileText, Scan, Binary, Fingerprint 
+} from 'lucide-react';
+import { useTheme } from "../context/ThemeContext"; 
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -15,17 +19,25 @@ export default function Register() {
   });
 
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [idFile, setIdFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
 
   // use shared theme
-  const { isDark, toggleTheme } = useTheme();
-
+  const { isDarkMode, toggleTheme } = useTheme(); // Renamed to match context usually (isDarkMode)
   const navigate = useNavigate();
 
   function handleChange(e) {
     const { name, value } = e.target;
+    if (name === "name") {
+      
+      if (!/^[a-zA-Z\s]*$/.test(value)) {
+        return; 
+      }
+    }
+    
     if (name === "confirmPassword") {
       setConfirmPassword(value);
     } else {
@@ -33,13 +45,42 @@ export default function Register() {
     }
   }
 
-  async function handleSubmit(e) {
+ async function handleSubmit(e) {
     e.preventDefault();
 
+    // 1. Check for empty fields
+    if (!form.name || !form.email || !form.password || !form.dob || !form.idType || !form.idNumber) {
+        setMsg({ type: "error", text: "Please fill in all required fields." });
+        return;
+    }
+
+    if (!idFile) {
+        setMsg({ type: "error", text: "Please upload your ID document." });
+        return;
+    }
+
+    // 2. Check Password Strength (Min 8 chars, 1 letter, 1 number/special char)
+    // Regex: ^(?=.*[A-Za-z])(?=.*\d|.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*[\d@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
+    
+    if (!passwordRegex.test(form.password)) {
+        setMsg({ 
+            type: "error", 
+            text: "Password must be at least 8 characters long and contain at least one letter and one number or special character." 
+        });
+        return;
+    }
+
+    // 3. Check Passwords Match
     if (form.password !== confirmPassword) {
       setMsg({ type: "error", text: "Passwords do not match" });
-      setLoading(false);
       return;
+    }
+
+    // 4. Check File Upload
+    if (!idFile) {
+        setMsg({ type: "error", text: "Please upload your ID document." });
+        return;
     }
 
     setMsg(null);
@@ -59,8 +100,8 @@ export default function Register() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setMsg({ type: "success", text: res.data.msg || "Registered." });
-      setTimeout(() => navigate("/login"), 1400);
+      setMsg({ type: "success", text: res.data.msg || "Registration successful." });
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       console.error(err);
       const text =
@@ -72,250 +113,413 @@ export default function Register() {
   }
 
   return (
-    // local "dark" class (global also handled by ThemeProvider)
-    <div className={isDark ? "dark" : ""}>
-      <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex flex-col font-sans transition-colors duration-200">
-        {/* HEADER */}
-        <header className="bg-white dark:bg-[#1a1a1a] shadow-md border-b border-gray-200 dark:border-zinc-800 relative z-20">
-          {/* 1. Top Govt Strip */}
-          <div className="bg-[#0B2447] dark:bg-black text-white text-[10px] md:text-xs font-semibold py-1.5 px-4 border-b border-yellow-500">
-            <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-              <span>GOVERNMENT OF INDIA</span>
-              <span>MINISTRY OF ELECTRONICS & IT</span>
-            </div>
+    <div className="flex w-full min-h-screen bg-gray-50 dark:bg-[#050505] overflow-hidden transition-colors duration-500 font-sans">
+      
+      {/* --- LEFT PANEL: Visual Experience --- */}
+      <div className="hidden lg:flex w-[50%] xl:w-[55%] relative bg-gray-100 dark:bg-[#020202] items-center justify-center p-12 overflow-hidden perspective-[2000px] transition-colors duration-500">
+          
+          {/* Animated Background Elements */}
+          <div className="absolute inset-0 w-full h-full pointer-events-none">
+             <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-yellow-200/40 dark:bg-yellow-600/5 rounded-full blur-[120px] animate-pulse-slow"></div>
+             <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-blue-200/40 dark:bg-blue-900/10 rounded-full blur-[120px] animate-pulse-slow"></div>
+             <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.03)_1px,transparent_1px)] dark:bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px] opacity-40 dark:opacity-20"></div>
           </div>
 
-          {/* 2. Main Header Content */}
-          <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-            {/* Left: Emblem & Title */}
-            <div className="flex items-center gap-4">
-              <img
-                src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg"
-                alt="National Emblem"
-                className="object-contain w-auto h-14 dark:invert dark:brightness-200 drop-shadow-sm"
-              />
-              <div className="flex flex-col">
-                <h1 className="text-2xl md:text-3xl font-extrabold text-[#0B2447] dark:text-white leading-none tracking-tight">
-                  E Voting <span className="text-[#FF9933]">Portal</span>
-                </h1>
-                <p className="mt-1 text-xs font-semibold text-gray-500 md:text-sm dark:text-gray-400">
-                  National E-Voting Platform
-                </p>
-              </div>
-            </div>
+          {/* Holographic Identity Construction Animation */}
+          <div className="relative z-10 flex flex-col items-center justify-center w-full max-w-lg">
+             
+             <motion.div
+               initial={{ opacity: 0, scale: 0.9 }}
+               animate={{ 
+                 opacity: 1, 
+                 scale: 1,
+                 y: [0, -20, 0],
+                 rotateX: [5, 0, 5],
+                 rotateY: [-5, 5, -5]
+               }}
+               transition={{ 
+                 opacity: { duration: 0.8 },
+                 scale: { duration: 0.8 },
+                 y: { duration: 6, repeat: Infinity, ease: "easeInOut" },
+                 rotateX: { duration: 7, repeat: Infinity, ease: "easeInOut" },
+                 rotateY: { duration: 8, repeat: Infinity, ease: "easeInOut" }
+               }}
+               className="relative w-[340px] h-[500px] bg-white/40 dark:bg-black/40 backdrop-blur-xl border border-white/60 dark:border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden group"
+             >
+                {/* Glass Reflection */}
+                <div className="absolute inset-0 z-10 pointer-events-none bg-gradient-to-br from-white/40 via-transparent to-transparent dark:from-white/5"></div>
+                
+                {/* Scanning Laser Beam */}
+                <motion.div 
+                  animate={{ top: ['-20%', '120%'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+                  className="absolute left-0 right-0 z-20 h-16 blur-md bg-gradient-to-b from-transparent via-yellow-500/30 to-transparent"
+                />
+                
+                {/* Internal Grid Pattern */}
+                <div className="absolute inset-0 opacity-10 dark:opacity-20 bg-[radial-gradient(#eab308_1px,transparent_1px)] [background-size:16px_16px]"></div>
 
-            {/* Right: Theme Toggle & Digital India */}
-            <div className="flex items-center gap-5">
-              <button
-                onClick={toggleTheme}
-                className="p-2.5 rounded-full bg-gray-50 text-gray-600 border border-gray-200 dark:bg-zinc-800 dark:text-yellow-400 dark:border-zinc-700 hover:bg-gray-100 dark:hover:bg-zinc-700 transition-all shadow-sm"
-                title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              >
-                {isDark ? <Sun size={20} /> : <Moon size={20} />}
-              </button>
+                {/* Card Header */}
+                <div className="relative z-10 flex items-center justify-between p-8 border-b border-gray-200 dark:border-white/10">
+                   <div className="flex items-center justify-center w-10 h-10 border rounded-lg bg-yellow-500/10 border-yellow-500/20">
+                      <img src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" className="w-6 h-6 opacity-80 dark:invert" alt="Emblem" />
+                   </div>
+                   <div className="text-[10px] font-mono font-bold text-gray-400 tracking-widest">DIGITAL_ID_GEN</div>
+                </div>
 
-              <div className="hidden w-px h-10 bg-gray-300 md:block dark:bg-zinc-700" />
+                {/* Card Body - Profile Construction */}
+                <div className="relative z-10 flex flex-col items-center justify-center flex-1 p-8 space-y-8">
+                   {/* Avatar Placeholder with Scan Effect */}
+                   <div className="relative flex items-center justify-center w-32 h-32 overflow-hidden border border-gray-300 rounded-full dark:border-white/10 bg-white/50 dark:bg-black/20">
+                      <User size={48} className="text-gray-300 dark:text-gray-700" />
+                      
+                      {/* Scanning Box */}
+                      <motion.div 
+                         className="absolute inset-0 border-2 border-yellow-500 rounded-full opacity-50"
+                         animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0, 0.5] }}
+                         transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      
+                      <div className="absolute inset-0 flex items-center justify-center">
+                         <Scan size={24} className="text-yellow-600 dark:text-yellow-500 animate-pulse" />
+                      </div>
+                   </div>
 
-              <img
-                src="https://upload.wikimedia.org/wikipedia/en/9/95/Digital_India_logo.svg"
-                alt="Digital India"
-                className="hidden w-auto h-12 transition-opacity md:block opacity-90 hover:opacity-100 dark:bg-white dark:p-1 dark:rounded-md"
-              />
-            </div>
+                   {/* Data Loading Bars */}
+                   <div className="w-full space-y-4">
+                      <div className="space-y-1">
+                         <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase">
+                           <span>Biometric Hash</span>
+                           <span className="text-yellow-600 dark:text-yellow-500">Processing...</span>
+                         </div>
+                         <div className="h-1.5 bg-gray-200 dark:bg-white/10 rounded-full w-full overflow-hidden">
+                           <motion.div 
+                             animate={{ width: ["0%", "100%"] }} 
+                             transition={{ duration: 2.5, repeat: Infinity }} 
+                             className="h-full bg-yellow-500" 
+                           />
+                         </div>
+                      </div>
+                      
+                      <div className="space-y-1">
+                         <div className="flex justify-between text-[10px] font-bold text-gray-400 uppercase">
+                           <span>Ledger Allocation</span>
+                           <span className="text-blue-600 dark:text-blue-500">Syncing</span>
+                         </div>
+                         <div className="h-1.5 bg-gray-200 dark:bg-white/10 rounded-full w-full overflow-hidden">
+                           <motion.div 
+                             animate={{ width: ["0%", "80%"] }} 
+                             transition={{ duration: 3, repeat: Infinity }} 
+                             className="h-full bg-blue-500" 
+                           />
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
+                {/* Card Footer */}
+                <div className="relative z-10 flex justify-center gap-4 p-4 text-center text-gray-500 border-t border-gray-200 bg-gray-50/50 dark:bg-white/5 dark:border-white/10 font-mono text-[10px]">
+                   <span className="flex items-center gap-1"><Lock size={10} /> ENCRYPTED</span>
+                   <span className="flex items-center gap-1"><ShieldCheck size={10} /> SECURE</span>
+                </div>
+             </motion.div>
+
+             {/* Floating Info Pods */}
+             <motion.div 
+               animate={{ x: [-10, 10, -10], y: [-5, 5, -5] }} 
+               transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }} 
+               className="absolute gap-3 p-3 bg-white border border-gray-200 shadow-xl -left-4 top-1/3 dark:bg-[#151515] rounded-xl dark:border-gray-800 flex items-center z-20"
+             >
+                <div className="p-2 text-green-600 bg-green-100 rounded-lg dark:bg-green-500/20 dark:text-green-500"><Fingerprint size={18} /></div>
+                <div>
+                   <div className="text-[9px] font-bold text-gray-400 uppercase">Identity</div>
+                   <div className="text-xs font-bold text-gray-900 dark:text-white">Unique</div>
+                </div>
+             </motion.div>
+
+             <motion.div 
+               animate={{ x: [10, -10, 10], y: [5, -5, 5] }} 
+               transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }} 
+               className="absolute gap-3 p-3 bg-white border border-gray-200 shadow-xl -right-4 bottom-1/3 dark:bg-[#151515] rounded-xl dark:border-gray-800 flex items-center z-20"
+             >
+                <div className="p-2 text-blue-600 bg-blue-100 rounded-lg dark:bg-blue-500/20 dark:text-blue-500"><Binary size={18} /></div>
+                <div>
+                   <div className="text-[9px] font-bold text-gray-400 uppercase">Encryption</div>
+                   <div className="text-xs font-bold text-gray-900 dark:text-white">SHA-256</div>
+                </div>
+             </motion.div>
+
           </div>
-        </header>
-
-        {/* MAIN FORM SECTION */}
-        <main className="flex-1 flex items-center justify-center p-4 bg-[url('https://www.toptal.com/designers/subtlepatterns/uploads/geometry2.png')] dark:bg-none">
-          <div className="w-full max-w-lg overflow-hidden transition-colors duration-200 bg-white border border-gray-200 rounded-t-lg shadow-lg dark:bg-black dark:border-yellow-400">
-            {/* Tricolor Strip */}
-            <div className="h-1.5 w-full bg-gradient-to-r from-[#FF9933] via-white to-[#138808]" />
-
-            <div className="p-8">
-              <div className="mb-6 text-center">
-                <h2 className="text-2xl font-bold text-[#0B2447] dark:text-yellow-400">
-                  New User Registration
-                </h2>
-                <p className="mt-1 text-sm text-gray-500 dark:text-white">
-                  Create an account for E-Voting Services
-                </p>
-              </div>
-
-              {msg && (
-                <div
-                  className={`mb-6 p-3 text-sm font-medium border-l-4 rounded-r ${
-                    msg.type === "success"
-                      ? "bg-green-50 text-green-800 border-green-600 dark:bg-green-900 dark:text-white dark:border-green-400"
-                      : "bg-red-50 text-red-800 border-red-600 dark:bg-red-900 dark:text-white dark:border-red-400"
-                  }`}
-                >
-                  {msg.text}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* 1. Name Field */}
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                    Full Name
-                  </label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter your full name"
-                    pattern="[A-Za-z\s]+"
-                    title="Name should only contain letters and spaces"
-                    className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
-                  />
-                </div>
-
-                {/* 2. Email Field */}
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                    Email Address
-                  </label>
-                  <input
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                    type="email"
-                    placeholder="Enter your email"
-                    className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
-                  />
-                </div>
-
-                {/* 3. Password Fields */}
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                      Password
-                    </label>
-                    <input
-                      name="password"
-                      value={form.password}
-                      onChange={handleChange}
-                      required
-                      type="password"
-                      autoComplete="new-password"
-                      placeholder="Create password"
-                      className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                      Confirm Password
-                    </label>
-                    <input
-                      name="confirmPassword"
-                      value={confirmPassword}
-                      onChange={handleChange}
-                      required
-                      type="password"
-                      autoComplete="new-password"
-                      placeholder="Confirm password"
-                      className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
-                    />
-                  </div>
-                </div>
-
-                {/* 4. DOB and ID Type */}
-                <div className="flex gap-4">
-                  <div className="w-1/2">
-                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                      Date of Birth
-                    </label>
-                    <input
-                      name="dob"
-                      value={form.dob}
-                      onChange={handleChange}
-                      required
-                      type="date"
-                      className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors cursor-pointer [color-scheme:light] dark:[color-scheme:dark] dark:[&::-webkit-calendar-picker-indicator]:invert"
-                    />
-                  </div>
-                  <div className="w-1/2">
-                    <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                      ID Type
-                    </label>
-                    <select
-                      name="idType"
-                      value={form.idType}
-                      onChange={handleChange}
-                      required
-                      className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors"
-                    >
-                      <option value="">Select ID</option>
-                      <option value="Aadhaar">Aadhaar</option>
-                      <option value="VoterID">VoterID</option>
-                      <option value="StudentID">StudentID</option>
-                      <option value="Passport">Passport</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* 5. ID Number */}
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                    ID Number
-                  </label>
-                  <input
-                    name="idNumber"
-                    value={form.idNumber}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter ID number"
-                    className="block w-full px-3 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-yellow-400 text-gray-900 dark:text-white text-sm rounded focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-[#0B2447] dark:focus:border-yellow-400 focus:outline-none focus:ring-1 transition-colors dark:placeholder-zinc-500"
-                  />
-                </div>
-
-                {/* 6. File Upload */}
-                <div>
-                  <label className="block mb-1 text-sm font-semibold text-gray-700 dark:text-white">
-                    Upload ID Document (Image/PDF)
-                  </label>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={(e) => setIdFile(e.target.files?.[0] || null)}
-                    required
-                    className="block w-full text-sm text-gray-500 dark:text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#0B2447] file:text-white hover:file:bg-[#1a3a5e] dark:file:bg-yellow-400 dark:file:text-black dark:hover:file:bg-yellow-300 transition-colors"
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full mt-4 flex justify-center py-2.5 px-4 border border-transparent rounded shadow-sm text-sm font-bold text-white bg-[#0B2447] hover:bg-[#1a3a5e] dark:bg-[#fff100] dark:text-black dark:hover:bg-yellow-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 disabled:opacity-70 disabled:cursor-not-allowed uppercase tracking-wide transition-all"
-                >
-                  {loading ? "Registering..." : "Complete Registration"}
-                </button>
-
-                <div className="pt-2 text-sm text-center">
-                  <span className="text-gray-600 dark:text-gray-400">
-                    Already have an account?{" "}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/login")}
-                    className="text-[#0B2447] dark:text-yellow-400 font-bold hover:underline"
-                  >
-                    Login
-                  </button>
-                </div>
-              </form>
-            </div>
-
-            {/* Footer Strip */}
-            <div className="bg-gray-50 dark:bg-[#1a1a1a] px-8 py-3 text-center text-xs text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-zinc-800">
-              Secure Access | IP Logged
-            </div>
-          </div>
-        </main>
       </div>
+
+      {/* --- RIGHT PANEL: Registration Form --- */}
+      <div className="w-full lg:w-[50%] xl:w-[45%] flex flex-col justify-center px-6 md:px-12 lg:px-16 py-8 relative z-20 bg-white dark:bg-[#0a0a0a] border-l border-gray-200 dark:border-gray-900/50 shadow-2xl lg:shadow-none transition-colors duration-500 overflow-y-auto">
+         
+         {/* Theme Toggle */}
+         <div className="absolute z-50 top-6 right-6">
+            <button 
+              onClick={toggleTheme}
+              className="p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-all hover:scale-105 active:scale-95 shadow-sm border border-gray-200 dark:border-gray-700"
+            >
+               {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+         </div>
+
+         {/* Subtle Background pattern */}
+         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-gray-50 via-white to-white dark:from-gray-900/20 dark:via-[#050505] dark:to-[#050505] pointer-events-none opacity-50"></div>
+
+         <div className="relative z-10 w-full max-w-lg mx-auto space-y-6">
+            {/* Header */}
+            <motion.div 
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+              className="text-center lg:text-left"
+            >
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 border rounded-full bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20 text-yellow-700 dark:text-yellow-500 text-[10px] font-bold uppercase tracking-widest">
+                 <ShieldCheck size={12} /> Secure Registration
+              </div>
+              <h1 className="mb-2 text-3xl font-extrabold leading-tight tracking-tight text-gray-900 dark:text-white">
+                New User <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">Registration</span>
+              </h1>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Create your secure digital identity for E-Voting Services.
+              </p>
+            </motion.div>
+
+            {/* Error/Success Messages */}
+            {msg && (
+                <div
+                    className={`p-3 text-sm font-medium border-l-4 rounded-r ${
+                    msg.type === "success"
+                        ? "bg-green-50 text-green-800 border-green-600 dark:bg-green-900/20 dark:text-green-400"
+                        : "bg-red-50 text-red-800 border-red-600 dark:bg-red-900/20 dark:text-red-400"
+                    }`}
+                >
+                    {msg.text}
+                </div>
+            )}
+
+            {/* Form */}
+            <motion.form 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              onSubmit={handleSubmit} 
+              className="space-y-4"
+            >
+        
+            {/* 1. Name Field */}
+              <div className="space-y-1.5 group">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Full Name</label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                      <User size={16} />
+                   </div>
+                   <input 
+                      type="text" 
+                      name="name" 
+                      value={form.name}
+                      onChange={handleChange}
+                      placeholder="Enter your full name"
+                      required 
+                      autoComplete="username"
+                      pattern="[A-Za-z\s]+" 
+                      title="Name should only contain letters and spaces"
+                      className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
+                   />
+                </div>
+              </div>
+
+              {/* 2. Email Field */}
+              <div className="space-y-1.5 group">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Email Address</label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                      <Mail size={16} />
+                   </div>
+                   <input 
+                      type="email" 
+                      name="email" // Matches state: form.email
+                      value={form.email}
+                      onChange={handleChange}
+                      placeholder="Enter your email"
+                      autoComplete="email"
+                      required // Added required
+                      className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
+                   />
+                </div>
+              </div>
+
+              {/* 3. Password Row */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5 group">
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Password</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                          <Lock size={16} />
+                       </div>
+                      <input 
+                          type={showPassword ? "text" : "password"} 
+                          name="password"
+                          value={form.password}
+                          onChange={handleChange}
+                          placeholder="Create password"
+                          autoComplete="new-password"
+                          required 
+                          pattern="^(?=.*[A-Za-z])(?=.*[\d@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
+                          title="Must be at least 8 characters long and contain at least one letter and one number or special character."
+                          className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-10 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
+                       />
+                       <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                       </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 group">
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Confirm Password</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                          <Lock size={16} />
+                       </div>
+                       <input 
+                          type={showConfirmPassword ? "text" : "password"} 
+                          name="confirmPassword"
+                          value={confirmPassword}
+                          onChange={handleChange}
+                            autoComplete=" new-password"
+                          placeholder="Confirm password"
+                          required // Added required
+                          className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-10 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
+                       />
+                       <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                          {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                       </button>
+                    </div>
+                  </div>
+              </div>
+
+              {/* 4. ID Details Row */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-1.5 group">
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Date of Birth</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                          <Calendar size={16} />
+                       </div>
+                       <input 
+                          type="date" 
+                          name="dob" // Matches state: form.dob
+                          value={form.dob}
+                          onChange={handleChange}
+                          required // Added required
+                          className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all text-sm font-medium cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
+                       />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 group">
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">ID Type</label>
+                    <div className="relative">
+                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                          <CreditCard size={16} />
+                       </div>
+                       <select 
+                          name="idType" // Matches state: form.idType
+                          value={form.idType}
+                          onChange={handleChange}
+                          required // Added required
+                          className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all text-sm font-medium appearance-none"
+                       >
+                          <option value="">Select ID</option>
+                          <option value="Aadhaar">Aadhaar</option>
+                          <option value="VoterID">VoterID</option>
+                          <option value="StudentID">StudentID</option>
+                          <option value="Passport">Passport</option>
+                       </select>
+                    </div>
+                  </div>
+              </div>
+
+              {/* 5. ID Number */}
+              <div className="space-y-1.5 group">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">ID Number</label>
+                <div className="relative">
+                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
+                      <FileText size={16} />
+                   </div>
+                   <input 
+                      type="text" 
+                      name="idNumber" // Matches state: form.idNumber
+                      value={form.idNumber}
+                      onChange={handleChange}
+                      placeholder="Enter ID number"
+                      required // Added required
+                      className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
+                   />
+                </div>
+              </div>
+
+              {/* 6. File Upload */}
+             <div className="space-y-1.5 group">
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Upload ID Document (Image/PDF)</label>
+                <div className="flex items-center gap-3">
+                   <label className="px-4 py-2 text-xs font-bold text-black transition-colors bg-yellow-500 rounded shadow-sm cursor-pointer hover:bg-yellow-400">
+                      Choose File
+                      <input 
+                        type="file" 
+                        accept="image/*,application/pdf"
+                        onChange={(e) => setIdFile(e.target.files?.[0] || null)}
+                        className="hidden" 
+                        // Removed required attribute on hidden input
+                      />
+                   </label>
+                   <span className="text-xs italic text-gray-500 dark:text-gray-400">
+                     {idFile ? idFile.name : "No file chosen"}
+                   </span>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <button 
+                type="submit"
+                disabled={loading}
+                className={`w-full h-12 relative rounded-lg font-bold text-sm uppercase tracking-wider overflow-hidden transition-all duration-300 mt-4 ${
+                  loading ? 'bg-yellow-600 text-yellow-100 cursor-not-allowed' :
+                  'bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_4px_20px_rgba(234,179,8,0.2)] hover:shadow-[0_4px_25px_rgba(234,179,8,0.4)] hover:-translate-y-0.5'
+                }`}
+              >
+                 <div className="relative z-10 flex items-center justify-center gap-2">
+                    {loading ? (
+                       <>
+                         <Loader2 size={18} className="animate-spin" /> Processing Data...
+                       </>
+                    ) : (
+                       <>
+                         Complete Registration <Upload size={16} />
+                       </>
+                    )}
+                 </div>
+              </button>
+            </motion.form>
+
+            <div className="mt-4 text-center">
+               <p className="text-xs text-gray-500 dark:text-gray-400">
+                 Already have an account?{' '}
+                 <button onClick={() => navigate("/login")} className="font-bold text-yellow-600 dark:text-yellow-500 hover:underline">
+                   Login
+                 </button>
+               </p>
+            </div>
+
+            {/* Security Footer Strip */}
+            <div className="flex items-center justify-center gap-6 py-3 mt-8 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-t border-gray-200 opacity-80 dark:border-gray-800">
+               <span className="flex items-center gap-1"><Lock size={10} /> Secure Access</span>
+               <span>|</span>
+               <span>IP Logged</span>
+            </div>
+         </div>
+      </div>
+
     </div>
   );
-}
+};

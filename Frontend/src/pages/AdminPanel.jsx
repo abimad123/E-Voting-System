@@ -1,3 +1,4 @@
+//src/pages/AdminPanel.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
@@ -142,45 +143,73 @@ const [elRes, arRes, uRes, logRes] = await Promise.all([
     }
   }
 
-  function handleCandidateFormChange(electionId, field, value) {
+function handleCandidateFormChange(electionId, field, value) {
+  setCandidateForm((prev) => ({
+    ...prev,
+    [electionId]: {
+      ...(prev[electionId] || {
+        name: "",
+        party: "",
+        description: "",
+        iconUrl: "",
+        iconFile: null,
+      }),
+      [field]: value,
+    },
+  }));
+}
+function handleCandidateFileChange(electionId, file) {
+  handleCandidateFormChange(electionId, "iconFile", file || null);
+}
+
+async function handleAddCandidate(electionId) {
+  const form = candidateForm[electionId];
+  if (!form || !form.name) {
+    setMsg({ type: "error", text: "Candidate name is required." });
+    return;
+  }
+
+  try {
+    const fd = new FormData();
+    fd.append("name", form.name);
+    fd.append("party", form.party || "");
+    fd.append("description", form.description || "");
+    if (form.iconFile) {
+      fd.append("icon", form.iconFile); // 👈 field name must match multer.single('icon')
+    }
+
+    const res = await api.post(
+      `/api/elections/${electionId}/candidates`,
+      fd,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+
+    setMsg({
+      type: "success",
+      text: `Candidate "${res.data.candidate.name}" added.`,
+    });
+
     setCandidateForm((prev) => ({
       ...prev,
       [electionId]: {
-        ...(prev[electionId] || { name: "", party: "", description: "" }),
-        [field]: value,
+        name: "",
+        party: "",
+        description: "",
+        iconFile: null,
+        iconUrl: "",
       },
     }));
+  } catch (err) {
+    console.error(err);
+    setMsg({
+      type: "error",
+      text: err?.response?.data?.msg || err.message,
+    });
   }
+}
 
-  async function handleAddCandidate(electionId) {
-    const form = candidateForm[electionId];
-    if (!form || !form.name) {
-      setMsg({ type: "error", text: "Candidate name is required." });
-      return;
-    }
-
-    try {
-      const res = await api.post(`/api/elections/${electionId}/candidates`, {
-        name: form.name,
-        party: form.party,
-        description: form.description,
-      });
-      setMsg({
-        type: "success",
-        text: `Candidate "${res.data.candidate.name}" added.`,
-      });
-      setCandidateForm((prev) => ({
-        ...prev,
-        [electionId]: { name: "", party: "", description: "" },
-      }));
-    } catch (err) {
-      console.error(err);
-      setMsg({
-        type: "error",
-        text: err?.response?.data?.msg || err.message,
-      });
-    }
-  }
 
   async function handleEndElection(electionId) {
     if (!window.confirm("End this election now?")) return;
@@ -468,7 +497,7 @@ const [elRes, arRes, uRes, logRes] = await Promise.all([
                                 const status = getStatus(e);
                                 const start = e.startTime ? new Date(e.startTime).toLocaleString() : "Not set";
                                 const end = e.endTime ? new Date(e.endTime).toLocaleString() : "Not set";
-                                const cForm = candidateForm[e._id] || { name: "", party: "", description: "" };
+const cForm = candidateForm[e._id] || { name: "", party: "", description: "", iconUrl: "" };
 
                                 return (
                                     <div key={e._id} className="border border-gray-200 dark:border-zinc-700 rounded-lg p-4 bg-white dark:bg-[#151515] hover:border-gray-300 dark:hover:border-zinc-600 transition-colors">
@@ -530,6 +559,25 @@ const [elRes, arRes, uRes, logRes] = await Promise.all([
                                                     value={cForm.party}
                                                     onChange={(ev) => handleCandidateFormChange(e._id, "party", ev.target.value)}
                                                 />
+           <input
+      type="text"
+      placeholder="Icon URL (optional)"
+      className="px-3 py-1.5 text-sm bg-gray-50 dark:bg-[#222] border border-gray-300 dark:border-zinc-700 rounded focus:outline-none focus:border-blue-500 dark:text-white"
+      value={cForm.iconUrl}
+      onChange={(ev) =>
+        handleCandidateFormChange(e._id, "iconUrl", ev.target.value)
+      }
+    />
+
+    {/* Local file upload (optional) */}
+    <input
+      type="file"
+      accept="image/*"
+      className="text-[11px] file:mr-2 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 dark:file:bg-yellow-400 dark:file:text-black dark:hover:file:bg-yellow-300"
+      onChange={(ev) =>
+        handleCandidateFileChange(e._id, ev.target.files?.[0] || null)
+      }
+    />
                                                 <input
                                                     type="text"
                                                     placeholder="Description"

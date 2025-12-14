@@ -1,20 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import {
-  Phone,
-  Mail,
-  MapPin,
-  Clock,
-  AlertCircle,
-  CheckCircle,
-  ArrowLeft,
-  MessageSquare
-} from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  ArrowLeft, Mail, Phone, MapPin, Clock, Send, 
+  MessageSquare, CheckCircle, AlertCircle, Loader2 
+} from 'lucide-react';
 
 export default function Contact() {
   const navigate = useNavigate();
-
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -23,8 +17,8 @@ export default function Contact() {
     message: "",
   });
 
+  const [submitState, setSubmitState] = useState('idle'); // 'idle' | 'processing' | 'success'
   const [msg, setMsg] = useState(null);
-  const [loading, setLoading] = useState(false);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -32,23 +26,12 @@ export default function Contact() {
   }
 
   function validateForm() {
-    if (!form.name.trim()) {
-      return "Please enter your full name.";
-    }
-    if (!form.email.trim()) {
-      return "Please enter your email address.";
-    }
-    // simple email regex
+    if (!form.name.trim()) return "Please enter your full name.";
+    if (!form.email.trim()) return "Please enter your email address.";
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim());
-    if (!emailOk) {
-      return "Please enter a valid email address.";
-    }
-    if (!form.category) {
-      return "Please select a query type.";
-    }
-    if (!form.subject.trim()) {
-      return "Please enter a brief subject.";
-    }
+    if (!emailOk) return "Please enter a valid email address.";
+    if (!form.category) return "Please select a query type.";
+    if (!form.subject.trim()) return "Please enter a brief subject.";
     if (!form.message.trim() || form.message.trim().length < 15) {
       return "Please describe your issue (at least 15 characters).";
     }
@@ -65,12 +48,11 @@ export default function Contact() {
       return;
     }
 
-    setLoading(true);
+    setSubmitState('processing');
     try {
-      // You can change this endpoint later when backend route is ready
       await api.post("/api/support/contact", form);
-
-
+      
+      setSubmitState('success');
       setMsg({
         type: "success",
         text: "Your message has been submitted. Our support team will contact you soon.",
@@ -85,274 +67,285 @@ export default function Contact() {
       });
     } catch (err) {
       console.error(err);
-      const text =
-        err?.response?.data?.msg ||
-        err?.message ||
-        "Unable to send your message. Please try again later.";
+      setSubmitState('idle');
+      const text = err?.response?.data?.msg || err?.message || "Unable to send your message. Please try again later.";
       setMsg({ type: "error", text });
-    } finally {
-      setLoading(false);
     }
   }
 
+  // Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex flex-col font-sans transition-colors duration-200">
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] pb-20 transition-colors duration-500 font-sans">
       
-      {/* --- HEADER --- */}
-      <header className="bg-white dark:bg-[#1a1a1a] shadow-md border-b border-gray-200 dark:border-zinc-800 relative z-10">
-        <div className="bg-[#0B2447] dark:bg-black text-white text-[10px] md:text-xs font-semibold py-1.5 px-4 border-b border-yellow-500">
-          <div className="max-w-[1400px] mx-auto flex justify-between items-center">
-            <span>GOVERNMENT OF INDIA</span>
-            <span>OFFICIAL E-VOTING SUPPORT</span>
-          </div>
-        </div>
-
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-          {/* Left: Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#0B2447]/10 dark:bg-yellow-400/20 flex items-center justify-center border border-[#0B2447]/20 dark:border-yellow-400/20">
-              <Mail className="text-[#0B2447] dark:text-yellow-400" size={20} />
-            </div>
-            <div>
-              <h1 className="text-xl md:text-2xl font-extrabold text-[#0B2447] dark:text-white tracking-tight leading-none">
-                Contact Support
-              </h1>
-              <p className="text-xs text-gray-500 md:text-sm dark:text-gray-400 mt-0.5">
-                We are here to help you
-              </p>
-            </div>
-          </div>
-
-          {/* Right: Back button */}
-          <button
+      {/* --- Sticky Header --- */}
+      <div className="bg-white/80 dark:bg-[#151515]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
+        <div className="container flex items-center justify-between px-4 py-4 mx-auto">
+            <button
             onClick={() => navigate("/dashboard")}
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm md:text-sm hover:bg-gray-50 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 transition-all transform hover:-translate-y-0.5"
           >
             <ArrowLeft size={16} />
             Back to Dashboard
           </button>
+          <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              Official Support Online
+          </div>
         </div>
-      </header>
+      </div>
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="flex items-center justify-center flex-1 px-4 py-8">
-        {/* Updated Container Width to 1400px */}
-        <div className="max-w-[1400px] w-full grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* --- LEFT: INFO PANEL & IMAGE --- */}
-          <section className="flex flex-col gap-6 lg:col-span-1">
-            
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="container max-w-6xl px-4 mx-auto mt-8"
+      >
+        <div className="flex flex-col gap-8 lg:flex-row lg:gap-12">
            
+           {/* --- Left Panel: Contact Info --- */}
+           <div className="w-full space-y-8 lg:w-1/3">
+              <motion.div variants={itemVariants}>
+                 <h1 className="mb-2 text-4xl font-extrabold text-gray-900 dark:text-white">
+                   Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">Support</span>
+                 </h1>
+                 <p className="text-lg text-gray-500 dark:text-gray-400">
+                   We are here to help you with any voting related queries or technical issues.
+                 </p>
+              </motion.div>
 
-            {/* 2. Contact Details Card */}
-            <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 p-6 flex-1">
-              <h2 className="pb-3 mb-4 text-lg font-bold text-gray-900 border-b border-gray-100 dark:text-white dark:border-zinc-800">
-                Contact Information
-              </h2>
-              
-              <div className="space-y-5 text-sm">
-                <div className="flex items-start gap-4">
-                  <div className="mt-1 p-2 rounded-full bg-blue-50 dark:bg-blue-900/20 text-[#0B2447] dark:text-blue-400">
-                    <MapPin size={18} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-200">
-                      Headquarters
-                    </p>
-                    <p className="mt-1 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
-                      National E-Voting Cell, <br/>
-                      Ministry of Electronics & IT, <br/>
-                      Electronics Niketan, New Delhi
-                    </p>
-                  </div>
-                </div>
+              <motion.div variants={itemVariants} className="space-y-4">
+                 <ContactCard 
+                   icon={<MapPin size={24} />}
+                   title="Headquarters"
+                   details={
+                     <>
+                       National E-Voting Cell, Ministry of Electronics & IT,<br/>
+                       Electronics Niketan, New Delhi
+                     </>
+                   }
+                   color="blue"
+                 />
+                 <ContactCard 
+                   icon={<Clock size={24} />}
+                   title="Support Hours"
+                   details="Mon – Fri, 9:00 AM to 6:00 PM IST"
+                   color="orange"
+                 />
+                 <ContactCard 
+                   icon={<Phone size={24} />}
+                   title="Helpline (Toll Free)"
+                   details="1800-111-2222"
+                   color="green"
+                   isLink
+                   href="tel:18001112222"
+                 />
+                 <ContactCard 
+                   icon={<Mail size={24} />}
+                   title="Email Support"
+                   details="support@e-voting.gov.in"
+                   color="purple"
+                   isLink
+                   href="mailto:support@e-voting.gov.in"
+                 />
+              </motion.div>
 
-                <div className="flex items-start gap-4">
-                  <div className="p-2 mt-1 text-orange-600 rounded-full bg-orange-50 dark:bg-orange-900/20 dark:text-orange-400">
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-200">
-                      Support Hours
+              <motion.div variants={itemVariants} className="p-4 border border-blue-100 rounded-xl bg-blue-50 dark:bg-blue-900/10 dark:border-blue-900/30">
+                 <div className="flex gap-3">
+                    <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-xs leading-relaxed text-blue-800 dark:text-blue-300">
+                       <strong>Note:</strong> For urgent election-day issues, please call the helpline for priority assistance.
                     </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      Mon – Fri, 9:00 AM to 6:00 PM
-                    </p>
-                  </div>
-                </div>
+                 </div>
+              </motion.div>
+           </div>
 
-                <div className="flex items-start gap-4">
-                  <div className="p-2 mt-1 text-green-600 rounded-full bg-green-50 dark:bg-green-900/20 dark:text-green-400">
-                    <Phone size={18} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-200">
-                      Helpline (Toll Free)
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      1800-111-2222
-                    </p>
-                  </div>
-                </div>
+           {/* --- Right Panel: Contact Form --- */}
+           <motion.div variants={itemVariants} className="w-full lg:w-2/3">
+              <div className="bg-white dark:bg-[#151515] rounded-3xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden relative">
+                 
+                 {/* Decorative Top Line */}
+                 <div className="h-1.5 w-full bg-gradient-to-r from-yellow-500 via-orange-500 to-yellow-500"></div>
 
-                <div className="flex items-start gap-4">
-                  <div className="p-2 mt-1 text-purple-600 rounded-full bg-purple-50 dark:bg-purple-900/20 dark:text-purple-400">
-                    <Mail size={18} />
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-800 dark:text-gray-200">
-                      Email Support
-                    </p>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                      support@e-voting.gov.in
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="pt-4 mt-6 border-t border-gray-100 dark:border-zinc-800">
-                <p className="text-[10px] text-gray-400 dark:text-zinc-500 text-center">
-                  *Standard call rates may apply for non-toll-free numbers.
-                </p>
-              </div>
-            </div>
-          </section>
-
-          {/* --- RIGHT: FORM --- */}
-          <section className="lg:col-span-2 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-6">
-                <MessageSquare size={24} className="text-[#0B2447] dark:text-yellow-400"/>
-                <div>
-                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                    Send us a Message
-                    </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Fill out the form below and we will get back to you shortly.
-                    </p>
-                </div>
-            </div>
-
-            {msg && (
-              <div
-                className={`mb-6 px-4 py-3 text-sm border-l-4 rounded-r flex items-center gap-3 shadow-sm ${
-                  msg.type === "success"
-                    ? "bg-green-50 text-green-800 border-green-600 dark:bg-green-900/20 dark:text-green-300"
-                    : "bg-red-50 text-red-800 border-red-600 dark:bg-red-900/20 dark:text-red-300"
-                }`}
-              >
-                {msg.type === "success" ? (
-                  <CheckCircle size={18} />
-                ) : (
-                  <AlertCircle size={18} />
-                )}
-                <span className="font-medium">{msg.text}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Name + Email */}
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label className="block mb-1.5 text-sm font-bold text-gray-700 dark:text-gray-300">
-                    Full Name <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    required
-                    placeholder="Enter your full name"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block mb-1.5 text-sm font-bold text-gray-700 dark:text-gray-300">
-                    Email Address <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    required
-                    placeholder="you@example.com"
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Category */}
-              <div>
-                <label className="block mb-1.5 text-sm font-bold text-gray-700 dark:text-gray-300">
-                  Query Type <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                    <select
-                    name="category"
-                    value={form.category}
-                    onChange={handleChange}
-                    required
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all appearance-none"
-                    >
-                    <option value="">Select a category</option>
-                    <option value="login">Login / OTP Issue</option>
-                    <option value="registration">Registration / KYC Issue</option>
-                    <option value="voting">Voting Process Issue</option>
-                    <option value="technical">Technical Error (Page/Server)</option>
-                    <option value="other">Others</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 pointer-events-none">
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                 <div className="relative z-10 p-8 md:p-10">
+                    <div className="flex items-center gap-3 mb-8">
+                       <div className="p-3 text-yellow-600 bg-yellow-100 dark:bg-yellow-500/10 dark:text-yellow-500 rounded-2xl">
+                          <MessageSquare size={24} />
+                       </div>
+                       <div>
+                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Send us a Message</h2>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Fill out the form below and we will get back to you shortly.</p>
+                       </div>
                     </div>
-                </div>
-              </div>
 
-              {/* Subject */}
-              <div>
-                <label className="block mb-1.5 text-sm font-bold text-gray-700 dark:text-gray-300">
-                  Subject <span className="text-red-500">*</span>
-                </label>
-                <input
-                  name="subject"
-                  value={form.subject}
-                  onChange={handleChange}
-                  required
-                  maxLength={100}
-                  placeholder="Brief summary of your issue"
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
-                />
-              </div>
+                    {msg && (
+                      <div className={`mb-6 p-4 rounded-lg flex items-center gap-2 border-l-4 shadow-sm ${
+                        msg.type === "success" 
+                          ? "bg-green-50 text-green-800 border-green-500 dark:bg-green-900/20 dark:text-green-400" 
+                          : "bg-red-50 text-red-800 border-red-500 dark:bg-red-900/20 dark:text-red-400"
+                      }`}>
+                        {msg.type === "success" ? <CheckCircle size={20}/> : <AlertCircle size={20}/>}
+                        {msg.text}
+                      </div>
+                    )}
 
-              {/* Message */}
-              <div>
-                <label className="block mb-1.5 text-sm font-bold text-gray-700 dark:text-gray-300">
-                  Detailed Description <span className="text-red-500">*</span>
-                </label>
-                <textarea
-                  name="message"
-                  value={form.message}
-                  onChange={handleChange}
-                  required
-                  rows={6}
-                  placeholder="Please describe your issue in detail..."
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#111] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all resize-y"
-                />
-              </div>
+                    {submitState === 'success' ? (
+                       <motion.div 
+                         initial={{ opacity: 0, scale: 0.9 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         className="flex flex-col items-center justify-center py-16 space-y-4 text-center"
+                       >
+                          <div className="flex items-center justify-center w-20 h-20 mb-4 text-green-600 bg-green-100 rounded-full dark:bg-green-900/20 dark:text-green-500">
+                             <CheckCircle size={40} strokeWidth={3} />
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Query Submitted!</h3>
+                          <p className="max-w-md text-gray-500 dark:text-gray-400">
+                             Your ticket has been created. A support representative will contact you at <strong>{form.email}</strong> shortly.
+                          </p>
+                          <button 
+                            onClick={() => {
+                               setSubmitState('idle');
+                               setMsg(null);
+                               setForm({ ...form, subject: '', message: '' });
+                            }}
+                            className="mt-6 font-bold text-yellow-600 dark:text-yellow-500 hover:underline"
+                          >
+                             Submit Another Query
+                          </button>
+                       </motion.div>
+                    ) : (
+                       <form onSubmit={handleSubmit} className="space-y-6">
+                          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                             <div>
+                                <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Full Name <span className="text-red-500">*</span></label>
+                                <input 
+                                  name="name"
+                                  value={form.name}
+                                  onChange={handleChange}
+                                  placeholder="Enter your full name"
+                                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
+                                />
+                             </div>
+                             <div>
+                                <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email Address <span className="text-red-500">*</span></label>
+                                <input 
+                                  name="email"
+                                  type="email"
+                                  value={form.email}
+                                  onChange={handleChange}
+                                  placeholder="you@example.com"
+                                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
+                                />
+                             </div>
+                          </div>
 
-              {/* Submit Button */}
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="px-8 py-3 text-sm font-bold text-white uppercase tracking-wide bg-[#0B2447] rounded-lg shadow-md hover:bg-[#1a3a5e] disabled:opacity-70 disabled:cursor-not-allowed dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 transition-all transform hover:-translate-y-0.5"
-                >
-                  {loading ? "Sending..." : "Submit Query"}
-                </button>
+                          <div>
+                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Query Type <span className="text-red-500">*</span></label>
+                             <select 
+                                name="category"
+                                value={form.category}
+                                onChange={handleChange}
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
+                             >
+                                <option value="">Select a category</option>
+                                <option value="login">Login / OTP Issue</option>
+                                <option value="registration">Registration / KYC Issue</option>
+                                <option value="voting">Voting Process Issue</option>
+                                <option value="technical">Technical Error</option>
+                                <option value="other">Other Inquiry</option>
+                             </select>
+                          </div>
+
+                          <div>
+                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subject <span className="text-red-500">*</span></label>
+                             <input 
+                                name="subject"
+                                value={form.subject}
+                                onChange={handleChange}
+                                placeholder="Brief summary of your issue"
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
+                             />
+                          </div>
+
+                          <div>
+                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Detailed Description <span className="text-red-500">*</span></label>
+                             <textarea 
+                                name="message"
+                                value={form.message}
+                                onChange={handleChange}
+                                rows={5}
+                                placeholder="Please describe your issue in detail..."
+                                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all resize-y"
+                             ></textarea>
+                          </div>
+
+                          <div className="flex justify-end pt-4">
+                             <button 
+                               type="submit" 
+                               disabled={submitState === 'processing'}
+                               className="flex items-center gap-2 px-8 py-4 text-sm font-bold text-black transition-all bg-yellow-500 shadow-lg hover:bg-yellow-400 rounded-xl shadow-yellow-500/20 hover:shadow-yellow-500/30 hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed"
+                             >
+                                {submitState === 'processing' ? (
+                                   <>
+                                     <Loader2 size={18} className="animate-spin" /> Sending...
+                                   </>
+                                ) : (
+                                   <>
+                                     Submit Query <Send size={18} />
+                                   </>
+                                )}
+                             </button>
+                          </div>
+                       </form>
+                    )}
+                 </div>
               </div>
-            </form>
-          </section>
+           </motion.div>
         </div>
-      </main>
+      </motion.div>
     </div>
   );
-}
+};
+
+// Helper Component for Contact Cards
+const ContactCard = ({ icon, title, details, color, isLink, href }) => {
+   const colors = {
+      blue: "text-blue-600 dark:text-blue-500 bg-blue-100 dark:bg-blue-900/20",
+      orange: "text-orange-600 dark:text-orange-500 bg-orange-100 dark:bg-orange-900/20",
+      green: "text-green-600 dark:text-green-500 bg-green-100 dark:bg-green-900/20",
+      purple: "text-purple-600 dark:text-purple-500 bg-purple-100 dark:bg-purple-900/20",
+   };
+
+   const Content = () => (
+      <div className="flex items-start gap-4 p-4 rounded-2xl bg-white dark:bg-[#151515] border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all group">
+         <div className={`p-3 rounded-xl ${colors[color]} shrink-0 group-hover:scale-110 transition-transform`}>
+            {icon}
+         </div>
+         <div>
+            <h3 className="mb-1 text-sm font-bold text-gray-900 dark:text-white">{title}</h3>
+            <div className="text-sm font-medium leading-relaxed text-gray-500 dark:text-gray-400">
+               {details}
+            </div>
+         </div>
+      </div>
+   );
+
+   if (isLink) {
+      return (
+         <a href={href} className="block">
+            <Content />
+         </a>
+      );
+   }
+
+   return <Content />;
+};

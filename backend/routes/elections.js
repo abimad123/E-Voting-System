@@ -5,6 +5,33 @@ const Election = require('../models/Election');
 const Candidate = require('../models/Candidate');
 const auth = require('../middleware/auth');
 
+const path = require('path');
+const crypto = require('crypto');
+const multer = require('multer');
+
+
+
+
+const candidateIconStorage = multer.diskStorage({
+  destination: (req, file, cb) =>
+    cb(null, path.join(__dirname, '..', 'uploads', 'candidate_icons')),
+  filename: (req, file, cb) => {
+    const ext = file.originalname.split('.').pop();
+    cb(
+      null,
+      `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`
+    );
+  },
+});
+const uploadCandidateIcon = multer({ storage: candidateIconStorage });
+
+function ensureAdmin(req, res, next) {
+  if (!req.user || req.user.role !== "admin") {
+    return res.status(403).json({ msg: "Admin only" });
+  }
+  next();
+}
+
 function ensureAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ msg: 'Admin only' });
@@ -122,23 +149,52 @@ router.get('/:id', async (req, res) => {
 });
 
 // 🔹 Add candidate to an election (admin)
-router.post('/:id/candidates', auth, ensureAdmin, async (req, res) => {
-  try {
-    const electionId = req.params.id;
-    const { name, party, description } = req.body;
-    const candidate = new Candidate({
-      election: electionId,
-      name,
-      party,
-      description,
-    });
-    await candidate.save();
-    res.json({ candidate });
-  } catch (err) {
-    console.error('add candidate error:', err);
-    res.status(500).json({ msg: 'Server error' });
+router.post(
+  "/:id/candidates",
+  auth,
+  ensureAdmin,
+  uploadCandidateIcon.single("icon"),
+  async (req, res) => {
+    try {
+      const { name, party, description, iconUrl } = req.body;
+
+      if (!name) {
+        return res.status(400).json({ msg: "Candidate name is required." });
+      }
+
+      const election = await Election.findById(req.params.id);
+      if (!election) {
+        return res.status(404).json({ msg: "Election not found" });
+      }
+
+      // 1. Determine the final URL (File upload OR text input OR empty)
+      let finalIconUrl = iconUrl || "";
+      if (req.file) {
+        // Construct path relative to server root
+        finalIconUrl = `/uploads/candidate_icons/${req.file.filename}`;
+      }
+
+      // 2. Create the Candidate Document separately
+      const newCandidate = new Candidate({
+        name,
+        party,
+        description,
+        iconUrl: finalIconUrl, 
+        election: election._id, // Link it to the election
+        votesCount: 0 // Initialize votes
+      });
+
+      // 3. Save to Candidate Collection
+      await newCandidate.save();
+
+      res.json({ msg: "Candidate added.", candidate: newCandidate });
+    } catch (err) {
+      console.error("add candidate error:", err);
+      res.status(500).json({ msg: "Server error", error: err.message });
+    }
   }
-});
+);
+
 
 // 🔹 Results endpoint
 router.get('/:id/results', async (req, res) => {

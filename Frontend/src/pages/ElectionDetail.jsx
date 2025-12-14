@@ -24,6 +24,7 @@ export default function ElectionDetail() {
   const [msg, setMsg] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   useEffect(() => {
     async function load() {
@@ -112,11 +113,11 @@ export default function ElectionDetail() {
         
         {/* --- HEADER SECTION --- */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border-l-4 border-[#0B2447] dark:border-yellow-400 p-6 transition-colors duration-200">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
+          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-start">
             
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                 <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">
+                 <h1 className="text-2xl font-bold text-gray-900 md:text-3xl dark:text-white">
                     {election.title}
                  </h1>
                  <span className={`px-3 py-1 text-xs font-bold uppercase rounded-full border ${
@@ -130,11 +131,11 @@ export default function ElectionDetail() {
                  </span>
               </div>
               
-              <p className="text-gray-600 dark:text-gray-300 max-w-3xl">
+              <p className="max-w-3xl text-gray-600 dark:text-gray-300">
                 {election.description}
               </p>
 
-              <div className="flex flex-wrap gap-4 text-sm text-gray-500 dark:text-gray-400 mt-2">
+              <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
                  {start && (
                    <div className="flex items-center gap-1">
                      <Calendar size={14} />
@@ -153,7 +154,7 @@ export default function ElectionDetail() {
             <div className="flex flex-col gap-2 min-w-[140px]">
                <button
                   onClick={() => navigate("/dashboard")}
-                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-300 dark:border-zinc-700 dark:hover:bg-zinc-700 transition-all shadow-sm"
+                  className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 transition-all bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 dark:bg-zinc-800 dark:text-gray-300 dark:border-zinc-700 dark:hover:bg-zinc-700"
                >
                   <ArrowLeft size={16} />
                   Dashboard
@@ -186,95 +187,122 @@ export default function ElectionDetail() {
             )}
 
             {!canVote && (
-              <div className="p-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 text-yellow-800 dark:text-yellow-200 border border-yellow-200 dark:border-yellow-900/30 flex items-center gap-2">
+              <div className="flex items-center gap-2 p-4 text-yellow-800 border border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 dark:text-yellow-200 dark:border-yellow-900/30">
                  <AlertCircle size={20} />
                  <span>You must be <span className="font-bold underline">verified</span> to cast a vote. Please complete KYC in your profile.</span>
               </div>
             )}
 
             {isNotStarted && (
-               <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-900/10 text-blue-800 dark:text-blue-200 border border-blue-200 dark:border-blue-900/30 flex items-center gap-2">
+               <div className="flex items-center gap-2 p-4 text-blue-800 border border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-900/10 dark:text-blue-200 dark:border-blue-900/30">
                  <Info size={20} />
                  This election has not started yet. Voting lines will open soon.
                </div>
             )}
 
             {isCompleted && (
-               <div className="p-4 rounded-lg bg-gray-100 dark:bg-zinc-800/50 text-gray-800 dark:text-gray-300 border border-gray-200 dark:border-zinc-700 flex items-center gap-2">
+               <div className="flex items-center gap-2 p-4 text-gray-800 bg-gray-100 border border-gray-200 rounded-lg dark:bg-zinc-800/50 dark:text-gray-300 dark:border-zinc-700">
                  <Info size={20} />
                  This election has ended. You can view the final results above.
                </div>
             )}
         </div>
 
-        {/* --- CANDIDATES LIST --- */}
+    {/* --- CANDIDATES LIST --- */}
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 overflow-hidden transition-colors duration-200">
-           <div className="p-4 bg-gray-50 dark:bg-[#222] border-b border-gray-100 dark:border-zinc-700">
-              <h2 className="text-lg font-bold text-[#0B2447] dark:text-yellow-400 flex items-center gap-2">
-                 <Vote size={20} />
-                 Candidates Ballot
-              </h2>
-           </div>
+          
+          {/* OPTIONAL: Add a Header if you want (e.g., "Candidates Ballot") */}
+          <div className="p-4 bg-gray-50 dark:bg-[#222] border-b border-gray-100 dark:border-zinc-700">
+             <h2 className="text-lg font-bold text-[#0B2447] dark:text-yellow-400 flex items-center gap-2">
+                <Vote size={20} />
+                Candidates Ballot
+             </h2>
+          </div>
 
-           <div className="divide-y divide-gray-100 dark:divide-zinc-800">
-              {candidates.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-                      No candidates listed for this election yet.
-                  </div>
-              ) : (
-                  candidates.map((c) => (
-                    <div key={c._id} className="p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors">
-                        <div className="flex items-start gap-4">
-                           <div className="h-12 w-12 rounded-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center text-gray-500 dark:text-gray-400 flex-shrink-0">
-                              <User size={24} />
-                           </div>
-                           <div>
-                              <h3 className="font-bold text-lg text-gray-900 dark:text-white">{c.name}</h3>
-                              <p className="text-sm font-semibold text-[#0B2447] dark:text-yellow-400 mb-1">{c.party}</p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
-                                {c.description || "No manifesto provided."}
-                              </p>
-                              
-                              {/* Live Vote Count (Conditional) */}
-                              <div className="mt-2 text-xs font-mono text-gray-500 dark:text-gray-500 flex items-center gap-2">
-                                <BarChart2 size={12} />
-                                Votes: 
-                                <span className="font-bold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
-                                   {canSeeVotes ? (c.votesCount || 0) : "Hidden"}
-                                </span>
-                                {!canSeeVotes && <span className="italic">(Hidden until results published)</span>}
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="flex-shrink-0">
-                           <button
-                              disabled={!canVote || isCompleted || isNotStarted || hasVoted}
-                              onClick={() => handleVote(c._id)}
-                              className={`w-full md:w-auto px-6 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2
-                                ${
-                                  !canVote || isCompleted || isNotStarted || hasVoted
-                                    ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 dark:bg-zinc-800 dark:text-zinc-600 dark:border-zinc-700"
-                                    : "bg-[#0B2447] text-white hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
-                                }
-                              `}
-                           >
-                              {hasVoted ? <CheckCircle size={16}/> : <Vote size={16}/>}
-                              {!canVote
-                                ? "Verify to Vote"
-                                : isNotStarted
-                                ? "Not Started"
-                                : isCompleted
-                                ? "Ended"
-                                : hasVoted
-                                ? "Voted"
-                                : "Vote Now"}
-                           </button>
-                        </div>
+          <div className="divide-y divide-gray-100 dark:divide-zinc-800">
+            {candidates.length === 0 ? (
+              <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+                No candidates listed for this election yet.
+              </div>
+            ) : (
+              candidates.map((c) => (
+                <div
+                  key={c._id}
+                  className="p-4 md:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-gray-50 dark:hover:bg-[#252525] transition-colors"
+                >
+                  <div className="flex items-start gap-4">
+                    
+                    {/* 👇 ICON SECTION (Correctly placed inside the map) 👇 */}
+                    <div className="flex items-center justify-center flex-shrink-0 w-24 h-24 overflow-hidden text-gray-500 bg-gray-200 border border-gray-200 rounded-full dark:bg-zinc-800 dark:text-gray-400 dark:border-zinc-700">
+                      {c.iconUrl ? (
+                        <img
+                          src={`${API_BASE}${c.iconUrl}`}
+                          alt={c.name}
+                          className="object-cover w-full h-full"
+                        />
+                      ) : (
+                        <User size={24} />
+                      )}
                     </div>
-                  ))
-              )}
-           </div>
+                    {/* 👆 ICON SECTION ENDS 👆 */}
+
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                        {c.name}
+                      </h3>
+                      <p className="text-sm font-semibold text-[#0B2447] dark:text-yellow-400 mb-1">
+                        {c.party}
+                      </p>
+                      <p className="max-w-2xl text-sm text-gray-600 dark:text-gray-400">
+                        {c.description || "No manifesto provided."}
+                      </p>
+
+                      {/* Live Vote Count (Conditional) */}
+                      <div className="flex items-center gap-2 mt-2 font-mono text-xs text-gray-500 dark:text-gray-500">
+                        <BarChart2 size={12} />
+                        Votes:
+                        <span className="font-bold text-gray-800 dark:text-gray-200 bg-gray-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                          {canSeeVotes ? c.votesCount || 0 : "Hidden"}
+                        </span>
+                        {!canSeeVotes && (
+                          <span className="italic">
+                            (Hidden until results published)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex-shrink-0">
+                    <button
+                      disabled={
+                        !canVote || isCompleted || isNotStarted || hasVoted
+                      }
+                      onClick={() => handleVote(c._id)}
+                      className={`w-full md:w-auto px-6 py-2.5 rounded-lg font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2
+                        ${
+                          !canVote || isCompleted || isNotStarted || hasVoted
+                            ? "bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200 dark:bg-zinc-800 dark:text-zinc-600 dark:border-zinc-700"
+                            : "bg-[#0B2447] text-white hover:bg-[#1a3a5e] dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300"
+                        }
+                      `}
+                    >
+                      {hasVoted ? <CheckCircle size={16} /> : <Vote size={16} />}
+                      {!canVote
+                        ? "Verify to Vote"
+                        : isNotStarted
+                        ? "Not Started"
+                        : isCompleted
+                        ? "Ended"
+                        : hasVoted
+                        ? "Voted"
+                        : "Vote Now"}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
 
       </div>

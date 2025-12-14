@@ -1,3 +1,4 @@
+// Backend/models/Election.js
 const mongoose = require('mongoose');
 
 const electionSchema = new mongoose.Schema({
@@ -8,7 +9,8 @@ const electionSchema = new mongoose.Schema({
   isPublic: { type: Boolean, default: true },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   createdAt: { type: Date, default: Date.now },
-  isArchived: { type: Boolean, default: false },  // NEW
+  isArchived: { type: Boolean, default: false }, 
+   // NEW
 });
 
 
