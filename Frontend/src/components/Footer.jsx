@@ -5,12 +5,9 @@ import { Facebook, Twitter, Instagram, Linkedin, Globe, Mail, MapPin } from "luc
 export default function Footer() {
   return (
     <footer className="bg-[#1a1a1a] dark:bg-black text-white mt-auto border-t-4 border-[#FF9933] font-sans">
-      {/* Main Footer Content */}
-      <div className="max-w-[1400px] mx-auto px-4 py-10">
+           <div className="max-w-[1400px] mx-auto px-4 py-10">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-4">
-          
-          {/* Column 1: Branding */}
-          <div className="space-y-4">
+                 <div className="space-y-4">
             <div className="flex items-center gap-2">
                 <div className="flex items-center justify-center w-8 h-8 bg-white rounded-full">
                     <img 
@@ -31,8 +28,6 @@ export default function Footer() {
                <a href="#" className="text-gray-400 hover:text-[#0077b5] transition-colors"><Linkedin size={18} /></a>
             </div>
           </div>
-
-          {/* Column 2: Quick Links */}
           <div>
             <h4 className="text-xs font-bold text-[#FF9933] uppercase mb-4 tracking-wider">Quick Links</h4>
             <ul className="space-y-2 text-sm text-gray-400">
@@ -42,8 +37,6 @@ export default function Footer() {
               <li><Link to="/feedback" className="inline-block transition-all hover:text-white hover:translate-x-1">Feedback</Link></li>
             </ul>
           </div>
-
-          {/* Column 3: Policies */}
           <div>
             <h4 className="text-xs font-bold text-[#138808] uppercase mb-4 tracking-wider">Policies</h4>
             <ul className="space-y-2 text-sm text-gray-400">
@@ -54,7 +47,6 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Column 4: Contact */}
           <div>
             <h4 className="mb-4 text-xs font-bold tracking-wider text-blue-400 uppercase">Contact Us</h4>
             <address className="space-y-3 text-sm not-italic text-gray-400">
@@ -74,8 +66,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-
-      {/* Bottom Strip */}
       <div className="bg-[#111] dark:bg-[#0a0a0a] py-4 border-t border-gray-800">
         <div className="max-w-[1400px] mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-3 text-xs text-gray-500">
           <p>© {new Date().getFullYear()} E - Voting Portal. All rights reserved.</p>

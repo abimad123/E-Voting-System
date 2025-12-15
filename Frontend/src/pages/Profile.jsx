@@ -213,13 +213,12 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] pb-20 transition-colors duration-500 font-sans">
-      
 
       <motion.div 
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="container max-w-6xl px-4 mx-auto mt-6"
+        className="container px-4 mx-auto  max-w-[1400px] mt-8"
       >
         
         {/* --- Hero Profile Header --- */}

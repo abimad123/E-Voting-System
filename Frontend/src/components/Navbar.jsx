@@ -38,9 +38,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
   };
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
-
-  // optionally hide navbar on login/register (if hideOnAuth true)
-  if (hideOnAuth && ["/login", "/register"].includes(location.pathname)) {
+ if (hideOnAuth && ["/login", "/register"].includes(location.pathname)) {
     return null;
   }
 
@@ -48,8 +46,6 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
     <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 dark:bg-[#1a1a1a] dark:border-zinc-800 transition-colors duration-200">
       <div className="max-w-6xl px-4 mx-auto">
         <div className="flex items-center justify-between h-16">
-          
-          {/* Logo Section */}
           <div className="flex items-center gap-3">
              <img 
                 src="https://upload.wikimedia.org/wikipedia/commons/5/55/Emblem_of_India.svg" 
@@ -63,9 +59,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
               E Voting <span className="text-[#FF9933] dark:text-yellow-400">Portal</span>
             </div>
           </div>
-
-          {/* Desktop Navigation */}
-          <div className="items-center hidden gap-6 text-sm font-medium md:flex">
+  <div className="items-center hidden gap-6 text-sm font-medium md:flex">
             <Link 
               className={`transition-colors duration-200 ${isActive("/dashboard") ? "text-[#0B2447] dark:text-yellow-400 font-bold border-b-2 border-[#0B2447] dark:border-yellow-400" : "text-gray-600 hover:text-[#0B2447] dark:text-gray-300 dark:hover:text-yellow-400"}`} 
               to="/dashboard"
@@ -95,11 +89,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
               </Link>
             )}
           </div>
-
-          {/* Right Side Actions */}
-          <div className="flex items-center gap-3">
-            
-            {/* Theme Toggle */}
+  <div className="flex items-center gap-3">
             <button
               onClick={toggleTheme}
               className="p-2 text-gray-600 transition-colors rounded-full hover:bg-gray-100 dark:text-yellow-400 dark:hover:bg-zinc-800 focus:outline-none"
@@ -130,9 +120,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
                 Logout
               </button>
             )}
-
-            {/* Mobile Menu Button */}
-            <button 
+   <button 
               onClick={() => setMobileOpen((s) => !s)} 
               className="p-2 text-gray-600 border rounded md:hidden dark:text-white dark:border-zinc-700"
             >
@@ -140,9 +128,7 @@ export default function Navbar({ theme, setTheme, hideOnAuth = false }) {
             </button>
           </div>
         </div>
-
-        {/* Mobile Dropdown */}
-        {mobileOpen && (
+  {mobileOpen && (
           <div className="pb-4 mt-2 border-t border-gray-100 md:hidden dark:border-zinc-800">
             <div className="flex flex-col gap-2 pt-4 text-sm">
               {token && <div className="px-2 pb-2 text-xs font-bold text-gray-400 uppercase">Signed in as {user?.name}</div>}

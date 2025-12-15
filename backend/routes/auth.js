@@ -1,17 +1,17 @@
-// backend/routes/auth.js
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const multer = require('multer');
 const path = require('path');
+const mongoose = require('mongoose'); // Required for manual GridFS
+const { Readable } = require('stream'); // Required to stream file buffers
 
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
-
-// ✅ use ONE name for the auth middleware
 const auth = require('../middleware/auth');
 const verifyTurnstile = require('../middleware/verifyTurnstile');
+
 const router = express.Router();
 
 function ensureAdmin(req, res, next) {
@@ -21,31 +21,46 @@ function ensureAdmin(req, res, next) {
   next();
 }
 
+// ---------------------------------------------------------
+// 1. CONFIGURE MULTER (MEMORY STORAGE)
+// ---------------------------------------------------------
+// We store the file in RAM temporarily.
+// DO NOT use GridFsStorage here.
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
-// ---------- Multer storage for ID docs ----------
-const idStorage = multer.diskStorage({
-  destination: (req, file, cb) =>
-    cb(null, path.join(__dirname, '..', 'uploads', 'id_docs')),
-  filename: (req, file, cb) => {
-    const ext = file.originalname.split('.').pop();
-    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`);
-  },
-});
-const uploadId = multer({ storage: idStorage });
+// ---------------------------------------------------------
+// 2. HELPER FUNCTION: MANUAL UPLOAD TO GRIDFS
+// ---------------------------------------------------------
+const uploadToGridFS = (file, bucketName) => {
+  return new Promise((resolve, reject) => {
+    // Create a unique filename
+    const filename = Date.now() + '-' + crypto.randomBytes(6).toString('hex') + path.extname(file.originalname);
+    
+    // Get the specific GridFS Bucket (id_docs or avatars)
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: bucketName
+    });
 
-// ---------- Multer storage for avatars ----------
-const avatarStorage = multer.diskStorage({
-  destination: (req, file, cb) =>
-    cb(null, path.join(__dirname, '..', 'uploads', 'avatars')),
-  filename: (req, file, cb) => {
-    const ext = file.originalname.split('.').pop();
-    cb(null, `${Date.now()}-${crypto.randomBytes(6).toString('hex')}.${ext}`);
-  },
-});
-const uploadAvatar = multer({ storage: avatarStorage });
+    // Create an upload stream to MongoDB
+    const uploadStream = bucket.openUploadStream(filename, {
+      contentType: file.mimetype
+    });
 
-// ---------- Register with KYC ----------
-router.post('/register', uploadId.single('idDoc'), async (req, res) => {
+    // Stream the file buffer from RAM to the Database
+    const readStream = Readable.from(file.buffer);
+    readStream.pipe(uploadStream)
+      .on('error', (err) => reject(err))
+      .on('finish', (savedFile) => {
+         resolve(filename); 
+      });
+  });
+};
+
+// ---------------------------------------------------------
+// 3. REGISTER ROUTE
+// ---------------------------------------------------------
+router.post('/register', upload.single('idDoc'), async (req, res) => {
   try {
     const { name, email, password, dob, idType, idNumber } = req.body;
 
@@ -62,13 +77,10 @@ router.post('/register', uploadId.single('idDoc'), async (req, res) => {
 
     let idNumberHash;
     if (idNumber) {
-      idNumberHash = crypto
-        .createHash('sha256')
-        .update(idNumber)
-        .digest('hex');
+      idNumberHash = crypto.createHash('sha256').update(idNumber).digest('hex');
     }
 
-    // age check if dob provided
+    // Age Check
     let parsedDob = dob ? new Date(dob) : undefined;
     if (parsedDob && !isNaN(parsedDob)) {
       const ageMs = Date.now() - parsedDob.getTime();
@@ -78,17 +90,22 @@ router.post('/register', uploadId.single('idDoc'), async (req, res) => {
       }
     }
 
+    // --- MANUAL UPLOAD LOGIC ---
+    let idDocFilename = undefined;
+    if (req.file) {
+       // Manually upload to the 'id_docs' bucket
+       idDocFilename = await uploadToGridFS(req.file, 'id_docs');
+    }
+
     const user = new User({
       name,
       email,
       passwordHash,
       dob: parsedDob || undefined,
       idType,
-      idNumber: idNumber || undefined,   // 👈 store plain value
-      idNumberHash,                      // 👈 and hashed value
-      idDocPath: req.file
-        ? `/uploads/id_docs/${req.file.filename}`
-        : undefined,
+      idNumber: idNumber || undefined,
+      idNumberHash,
+      idDocPath: idDocFilename, // Save the generated filename
       verificationStatus: 'pending',
     });
 
@@ -107,8 +124,9 @@ router.post('/register', uploadId.single('idDoc'), async (req, res) => {
   }
 });
 
-
-// ---------- Login ----------
+// ---------------------------------------------------------
+// 4. LOGIN ROUTE
+// ---------------------------------------------------------
 router.post('/login', verifyTurnstile, async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -117,8 +135,7 @@ router.post('/login', verifyTurnstile, async (req, res) => {
     if (!user) return res.status(400).json({ msg: 'Invalid email or password' });
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch)
-      return res.status(400).json({ msg: 'Invalid email or password' });
+    if (!isMatch) return res.status(400).json({ msg: 'Invalid email or password' });
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -143,7 +160,9 @@ router.post('/login', verifyTurnstile, async (req, res) => {
   }
 });
 
-// ---------- Get current user ----------
+// ---------------------------------------------------------
+// 5. GET CURRENT USER
+// ---------------------------------------------------------
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-passwordHash').lean();
@@ -155,115 +174,93 @@ router.get('/me', auth, async (req, res) => {
   }
 });
 
-// ---------- Change password ----------
+// ---------------------------------------------------------
+// 6. CHANGE PASSWORD
+// ---------------------------------------------------------
 router.post('/change-password', auth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ msg: 'Current password and new password are required' });
+      return res.status(400).json({ msg: 'Missing passwords' });
     }
 
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
     const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Current password is incorrect' });
-    }
+    if (!isMatch) return res.status(400).json({ msg: 'Current password incorrect' });
 
     user.passwordHash = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    await AuditLog.create({
-      user: user._id,
-      action: 'PASSWORD_CHANGED',
-      details: {},
-    });
-
+    await AuditLog.create({ user: user._id, action: 'PASSWORD_CHANGED', details: {} });
     res.json({ msg: 'Password changed successfully' });
   } catch (err) {
-    console.error('change-password error:', err);
+    console.error('change-pw error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// ---------- Upload / update avatar ----------
-router.post(
-  '/avatar',
-  auth,
-  uploadAvatar.single('avatar'),
-  async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ msg: 'No file uploaded' });
-      }
+// ---------------------------------------------------------
+// 7. AVATAR UPLOAD
+// ---------------------------------------------------------
+router.post('/avatar', auth, upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ msg: 'No file uploaded' });
 
-      const user = await User.findById(req.user.id);
-      if (!user) return res.status(404).json({ msg: 'User not found' });
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ msg: 'User not found' });
 
-      user.avatarUrl = `/uploads/avatars/${req.file.filename}`;
-      await user.save();
+    // --- MANUAL UPLOAD LOGIC ---
+    const avatarFilename = await uploadToGridFS(req.file, 'avatars');
 
-      await AuditLog.create({
-        user: user._id,
-        action: 'AVATAR_UPDATED',
-        details: { avatarUrl: user.avatarUrl },
-      });
+    user.avatarUrl = avatarFilename; 
+    await user.save();
 
-      res.json({
-        msg: 'Avatar updated successfully',
-        avatarUrl: user.avatarUrl,
-      });
-    } catch (err) {
-      console.error('avatar error:', err);
-      res.status(500).json({ msg: 'Server error', error: err.message });
-    }
+    await AuditLog.create({
+      user: user._id,
+      action: 'AVATAR_UPDATED',
+      details: { avatarUrl: user.avatarUrl },
+    });
+
+    res.json({ msg: 'Avatar updated', avatarUrl: user.avatarUrl });
+  } catch (err) {
+    console.error('avatar error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
   }
-);
+});
 
-// POST /api/auth/phone
-// Save phone number once; cannot change later (no OTP for now)
+// ---------------------------------------------------------
+// 8. SAVE PHONE
+// ---------------------------------------------------------
 router.post('/phone', auth, async (req, res) => {
   try {
     const { phone } = req.body;
+    if (!phone) return res.status(400).json({ msg: 'Phone required' });
 
-    if (!phone) {
-      return res.status(400).json({ msg: 'Phone number is required' });
-    }
-
-    // simple India-style validation: 10 digits
     const phoneDigits = phone.replace(/\D/g, '');
     if (!/^\d{10}$/.test(phoneDigits)) {
-      return res.status(400).json({ msg: 'Please enter a valid 10-digit phone number' });
+      return res.status(400).json({ msg: 'Invalid phone format' });
     }
 
     const user = await User.findById(req.user.id);
-    if (!user) {
-      return res.status(404).json({ msg: 'User not found' });
-    }
-
-    // do not allow updating once set
-    if (user.phone) {
-      return res.status(400).json({ msg: 'Phone number is already set and cannot be changed.' });
-    }
+    if (!user) return res.status(404).json({ msg: 'User not found' });
+    if (user.phone) return res.status(400).json({ msg: 'Phone already set' });
 
     user.phone = phoneDigits;
     user.phoneAddedAt = new Date();
     await user.save();
 
-    return res.json({ msg: 'Phone number saved successfully.' });
+    res.json({ msg: 'Phone saved' });
   } catch (err) {
-    console.error('ERROR /api/auth/phone:', err);
-    return res
-      .status(500)
-      .json({ msg: 'Unable to save phone number. Please try again later.' });
+    console.error('phone error:', err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
-
-// ---------- Delete account ----------
+// ---------------------------------------------------------
+// 9. DELETE ACCOUNT
+// ---------------------------------------------------------
 router.delete('/delete-account', auth, async (req, res) => {
   try {
     const { password } = req.body;
@@ -271,32 +268,24 @@ router.delete('/delete-account', auth, async (req, res) => {
     if (!user) return res.status(404).json({ msg: 'User not found' });
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Password is incorrect' });
-    }
+    if (!isMatch) return res.status(400).json({ msg: 'Password incorrect' });
 
-    await AuditLog.create({
-      user: user._id,
-      action: 'ACCOUNT_DELETED',
-      details: { email: user.email },
-    });
-
+    await AuditLog.create({ user: user._id, action: 'ACCOUNT_DELETED', details: { email: user.email } });
     await User.findByIdAndDelete(user._id);
 
-    res.json({ msg: 'Account deleted successfully' });
+    res.json({ msg: 'Account deleted' });
   } catch (err) {
-    console.error('delete-account error:', err);
+    console.error('delete error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });
 
-// ---------- Admin verify user ----------
-router.post('/admin/verify/:userId', auth, async (req, res) => {
+// ---------------------------------------------------------
+// 10. ADMIN VERIFY USER
+// ---------------------------------------------------------
+router.post('/admin/verify/:userId', auth, ensureAdmin, async (req, res) => {
   try {
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ msg: 'Admin only' });
-    }
-    const { action } = req.body; // 'approve' or 'reject'
+    const { action } = req.body;
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({ msg: 'Invalid action' });
     }
@@ -317,7 +306,7 @@ router.post('/admin/verify/:userId', auth, async (req, res) => {
 
     res.json({ msg: 'Updated' });
   } catch (err) {
-    console.error('admin verify error:', err);
+    console.error('verify error:', err);
     res.status(500).json({ msg: 'Server error', error: err.message });
   }
 });

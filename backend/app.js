@@ -9,6 +9,7 @@ const voteRoutes = require('./routes/votes');
 const adminRoutes = require('./routes/admin');
 const authOtpRouter = require('./routes/authOtpReset'); 
 const supportRoutes = require('./routes/support'); 
+const fileRoutes = require('./routes/files');
 
 const app = express();
 
@@ -16,13 +17,14 @@ const app = express();
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:8080";
 
 app.use(cors({
-  origin: FRONTEND_ORIGIN,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: "http://localhost:8080",
   credentials: true,
+  // 👇 "PATCH" MUST BE IN THIS LIST 👇
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], 
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
-// Preflight handler
+
 app.use((req, res, next) => {
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -39,6 +41,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/elections', electionRoutes);
 app.use('/api', voteRoutes);
+app.use('/api/files', fileRoutes);
 
 // ✅ mount support routes here
 app.use('/api/support', supportRoutes);
