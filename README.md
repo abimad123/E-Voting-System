@@ -81,7 +81,7 @@ node server.js
 
 You should see: ✅ MongoDB connected and 🚀 Server running on port 5000
 
-3. Frontend Setup
+### 3. Frontend Setup
 
 # Open a new terminal and navigate to the root (or frontend folder)
 cd src # (or wherever your package.json for react is)
