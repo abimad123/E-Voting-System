@@ -20,7 +20,7 @@ app.use(cors({
  origin: [
     "http://localhost:5173", 
     "https://e-voting-systemmabi.onrender.com",
-    "https://your-new-vercel-link.vercel.app"
+    "https://e-voting-system-vert.vercel.app"
   ],
   credentials: true,
   // 👇 "PATCH" MUST BE IN THIS LIST 👇
