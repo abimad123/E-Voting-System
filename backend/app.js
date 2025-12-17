@@ -17,7 +17,11 @@ const app = express();
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:8080";
 
 app.use(cors({
-  origin: "http://localhost:8080",
+ origin: [
+    "http://localhost:5173", 
+    "https://e-voting-systemmabi.onrender.com",
+    "https://your-new-vercel-link.vercel.app"
+  ],
   credentials: true,
   // 👇 "PATCH" MUST BE IN THIS LIST 👇
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"], 
