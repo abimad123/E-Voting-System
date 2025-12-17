@@ -3,10 +3,14 @@ import { Link, useNavigate } from "react-router-dom";
 import api from "../api";
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Sun, Moon, User, CheckCircle, XCircle, Clock, FileText, ChevronRight,
+  User, CheckCircle, XCircle, Clock, FileText, ChevronRight,
   ArrowRight, ShieldCheck, Zap, Fingerprint, Check, Database, Lock,
   CheckCircle2, Calendar, Search, Filter, Layers, Archive
 } from "lucide-react";
+
+// --- IMPORT SHARED CONTEXTS ---
+import { useTheme } from "../context/ThemeContext";
+import { useLanguage } from "../context/LanguageContext";
 
 // Define Motion components for the Hero section
 const MotionDiv = motion.div;
@@ -15,30 +19,31 @@ const MotionP = motion.p;
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  
+  // --- USE SHARED CONTEXTS ---
+  const { isDarkMode } = useTheme(); // Shared Theme
+  const { t, lang } = useLanguage(); // Shared Language
+  
   const [user, setUser] = useState(null);
   const [elections, setElections] = useState([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState(null);
   
-  // New state for Search & Filter
+  // Search & Filter State
   const [filter, setFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  
-  // Theme state
-  const [isDark, setIsDark] = useState(false);
-  const toggleTheme = () => setIsDark(!isDark);
 
-  const currentDate = new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  // Date formatting based on selected language
+  const locale = lang === 'en' ? 'en-US' : 'en-IN';
+  const currentDate = new Date().toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
 
   useEffect(() => {
     async function load() {
       setLoading(true);
       try {
-        // current user
         const meRes = await api.get("/api/auth/me");
         setUser(meRes.data.user);
 
-        // all elections
         const elRes = await api.get("/api/elections");
         setElections(elRes.data.elections || []);
       } catch (err) {
@@ -73,14 +78,12 @@ export default function Dashboard() {
   const filteredElections = elections.filter(election => {
     const status = getStatus(election); 
     
-    // Filter Logic
     const matchesFilter = filter === 'ALL' 
       ? true 
       : filter === 'ACTIVE' 
       ? status === 'active' 
       : status === 'completed'; 
       
-    // Search Logic
     const matchesSearch = election.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           (election.description && election.description.toLowerCase().includes(searchQuery.toLowerCase()));
                           
@@ -89,10 +92,10 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className={isDark ? "dark" : ""}>
+      <div className={isDarkMode ? "dark" : ""}>
         <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-center transition-colors duration-200">
            <div className="text-xl font-semibold text-[#0B2447] dark:text-yellow-400 animate-pulse">
-             Loading Dashboard...
+             {t.loading || "Loading..."}
            </div>
         </div>
       </div>
@@ -100,16 +103,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className={isDark ? "dark" : ""}>
+    <div className={isDarkMode ? "dark" : ""}>
       <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex flex-col font-sans transition-colors duration-200">
         
-        {/* --- HEADER PLACEHOLDER --- */}
-        {/* You can add your Navbar here */}
-
-        {/* ===================================================================================== */}
-        {/* START HERO SECTION INTEGRATION */}
-        {/* ===================================================================================== */}
-        <div className="relative w-full overflow-hidden bg-white dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800 flex items-center transition-colors duration-500 mb-8">
+        {/* ================= HERO SECTION ================= */}
+         <div className="relative w-full overflow-hidden bg-white dark:bg-[#0f0f0f] border-b border-gray-200 dark:border-gray-800 flex items-center transition-colors duration-500 mb-8">
           {/* --- Advanced Glowing Background --- */}
           <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
             {/* Top Center Glow */}
@@ -319,51 +317,34 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
-        {/* ===================================================================================== */}
-        {/* END HERO SECTION INTEGRATION */}
-        {/* ===================================================================================== */}
-
 
         {/* --- MAIN CONTENT --- */}
         <div className="flex-1 max-w-[1400px] w-full mx-auto p-4 md:p-6 space-y-6">
             
-            {/* 1. User Info Card (Redesigned) */}
+            {/* 1. User Info Card */}
             <MotionDiv
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
                 className="relative mb-2"
             >
-                {/* Decorative Glow Behind */}
+                {/* Decorative Glow */}
                 <div className="absolute top-0 left-0 w-full h-full transform scale-y-110 opacity-50 bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-yellow-500/20 blur-3xl -z-10 dark:opacity-20"></div>
 
-                {/* Main Card */}
                 <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1a1a1a] border border-gray-100 dark:border-gray-800 shadow-xl group">
-                    
-                    {/* Top Accent Line */}
                     <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-400"></div>
 
-                    {/* Background Pattern */}
-                    <div className="absolute -right-10 -top-10 text-gray-50 dark:text-[#222] transform rotate-12 pointer-events-none">
-                        <ShieldCheck size={300} strokeWidth={0.5} />
-                    </div>
-
                     <div className="relative z-10 flex flex-col items-start justify-between gap-6 p-6 md:p-8 xl:flex-row xl:items-center">
-                        
-                        {/* Left: User Identity */}
                         <div className="flex items-center gap-6">
-                            {/* Avatar Section */}
                             <div className="relative">
                                 <div className="h-20 w-20 md:h-24 md:w-24 rounded-full p-[3px] bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg">
                                     <div className="h-full w-full rounded-full bg-gray-50 dark:bg-[#1a1a1a] flex items-center justify-center border-4 border-white dark:border-[#121212] overflow-hidden">
                                         <User size={40} className="text-gray-400 dark:text-gray-500" />
                                     </div>
                                 </div>
-                                {/* Verification Badge */}
                                 <div className={`absolute bottom-1 right-0 p-1.5 rounded-full border-4 border-white dark:border-[#121212] shadow-md text-white
                                     ${user?.verificationStatus === "approved" ? "bg-green-500" : 
                                       user?.verificationStatus === "rejected" ? "bg-red-500" : "bg-yellow-500"}`}
-                                    title={`Verification: ${user?.verificationStatus}`}
                                 >
                                     {user?.verificationStatus === "approved" && <CheckCircle2 size={14} strokeWidth={4} />}
                                     {user?.verificationStatus === "rejected" && <XCircle size={14} strokeWidth={4} />}
@@ -371,20 +352,17 @@ export default function Dashboard() {
                                 </div>
                             </div>
 
-                            {/* Text Info */}
                             <div className="space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-yellow-50 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 text-[10px] font-bold uppercase tracking-wider border border-yellow-100 dark:border-yellow-500/20">
-                                        <ShieldCheck size={10} /> Official Voter
+                                        <ShieldCheck size={10} /> {t.officialVoter || "Official Voter"}
                                     </span>
                                 </div>
-                                
                                 <h1 className="text-3xl font-extrabold leading-none tracking-tight text-gray-900 md:text-4xl dark:text-white">
-                                    Welcome, <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400">
+                                    {t.welcome || "Welcome"}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-600 dark:from-yellow-400 dark:to-orange-400">
                                         {user?.name ? user.name.split(' ')[0] : "Voter"}
                                     </span>
                                 </h1>
-                                
                                 <div className="flex flex-col gap-1 text-sm font-medium text-gray-500 md:flex-row md:items-center md:gap-3 dark:text-gray-400">
                                     <span className="truncate">{user?.email}</span>
                                     <span className="hidden w-1 h-1 bg-gray-300 rounded-full md:block dark:bg-gray-700"></span>
@@ -395,10 +373,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        {/* Right: Dashboard Widgets */}
                         <div className="w-full xl:w-auto flex flex-col md:flex-row items-stretch md:items-center gap-3 bg-gray-50 dark:bg-[#0f0f0f] p-2 rounded-xl border border-gray-100 dark:border-gray-800/50">
-                            
-                            {/* Admin Button (Now a Widget) */}
                             {user?.role === "admin" && (
                                 <button
                                     onClick={() => navigate("/admin")}
@@ -414,7 +389,7 @@ export default function Dashboard() {
                                     <Calendar size={18} />
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Today</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t.today || "Today"}</p>
                                     <p className="text-sm font-bold leading-tight text-gray-900 dark:text-gray-100 whitespace-nowrap">{currentDate}</p>
                                 </div>
                             </div>
@@ -431,7 +406,7 @@ export default function Dashboard() {
                                     {(!user?.verificationStatus || user?.verificationStatus === "pending") && <Clock size={18} />}
                                 </div>
                                 <div>
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</p>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{t.status || "Status"}</p>
                                     <p className={`text-sm font-bold leading-tight capitalize ${
                                         user?.verificationStatus === "approved" ? "text-green-700 dark:text-green-400" :
                                         user?.verificationStatus === "rejected" ? "text-red-700 dark:text-red-400" :
@@ -441,69 +416,53 @@ export default function Dashboard() {
                                     </p>
                                 </div>
                             </div>
-
                         </div>
                     </div>
                 </div>
             </MotionDiv>
 
-            {/* Error/Success Messages */}
-            {msg && (
-                <div
-                    className={`p-4 rounded border-l-4 ${
-                    msg.type === "error"
-                        ? "bg-red-50 border-red-500 text-red-800 dark:bg-red-900/30 dark:text-red-300"
-                        : "bg-green-50 border-green-500 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                    }`}
-                >
-                    {msg.text}
-                </div>
-            )}
-
-            {/* 2. Elections List (Redesigned) */}
+            {/* 2. Elections List */}
             <div className="space-y-6">
                 
                 {/* Dashboard Toolbar */}
                 <div className="flex flex-col items-end justify-between gap-4 pb-4 border-b border-gray-200 md:flex-row md:items-center dark:border-gray-800">
                     <div className="space-y-1">
                         <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900 transition-colors dark:text-white">
-                            <Layers className="text-yellow-500" /> Election Dashboard
+                            <Layers className="text-yellow-500" /> {t.dashboardTitle || "Election Dashboard"}
                         </h2>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Manage and participate in ongoing polls.</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">{t.dashboardSubtitle || "Manage polls"}</p>
                     </div>
 
                     <div className="flex flex-col w-full gap-3 sm:flex-row md:w-auto">
-                        {/* Search */}
                         <div className="relative group">
                             <Search className="absolute text-gray-400 transition-colors -translate-y-1/2 left-3 top-1/2 group-focus-within:text-yellow-500" size={18} />
                             <input 
                                 type="text" 
-                                placeholder="Search elections..." 
+                                placeholder={t.searchPlaceholder || "Search..."}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full sm:w-64 pl-10 pr-4 py-2 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-gray-800 rounded-lg text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-yellow-500 dark:focus:border-yellow-500 transition-colors shadow-sm"
                             />
                         </div>
 
-                        {/* Filters */}
                         <div className="flex bg-gray-200 dark:bg-[#1a1a1a] p-1 rounded-lg">
                             <button 
                                 onClick={() => setFilter('ALL')}
                                 className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${filter === 'ALL' ? 'bg-white dark:bg-gray-800 text-black dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
-                                All
+                                {t.all || "All"}
                             </button>
                             <button 
                                 onClick={() => setFilter('ACTIVE')}
                                 className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${filter === 'ACTIVE' ? 'bg-white dark:bg-gray-800 text-green-600 dark:text-green-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
-                                <Zap size={12} /> Active
+                                <Zap size={12} /> {t.active || "Active"}
                             </button>
                             <button 
                                 onClick={() => setFilter('COMPLETED')}
                                 className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all flex items-center gap-1 ${filter === 'COMPLETED' ? 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
                             >
-                                <Archive size={12} /> Past
+                                <Archive size={12} /> {t.past || "Past"}
                             </button>
                         </div>
                     </div>
@@ -518,12 +477,9 @@ export default function Dashboard() {
                         {filteredElections.length > 0 ? (
                             filteredElections.map((e) => {
                                 const status = getStatus(e);
-                                const start = e.startTime
-                                    ? new Date(e.startTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                                    : "Not set";
-                                const end = e.endTime
-                                    ? new Date(e.endTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
-                                    : "Not set";
+                                const dateOpts = { dateStyle: 'medium', timeStyle: 'short' };
+                                const start = e.startTime ? new Date(e.startTime).toLocaleString(locale, dateOpts) : "Not set";
+                                const end = e.endTime ? new Date(e.endTime).toLocaleString(locale, dateOpts) : "Not set";
 
                                 return (
                                     <motion.div
@@ -545,10 +501,9 @@ export default function Dashboard() {
                                                         ? "bg-gray-100 text-gray-600 border-gray-200 dark:bg-zinc-800 dark:text-gray-400 dark:border-zinc-700"
                                                         : "bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-500/30"
                                                 }`}>
-                                                    {status === "active" && (
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                                    )}
-                                                    {status}
+                                                    {status === "active" && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>}
+                                                    {/* Translate status dynamically if key exists */}
+                                                    {t[status] || status}
                                                 </span>
                                             </div>
 
@@ -561,30 +516,24 @@ export default function Dashboard() {
                                                 </p>
                                             </div>
 
-                                           {/* Date Section - Matching your dark box design */}
                                             <div className="p-3 mt-4 space-y-3 border border-gray-100 rounded-lg bg-gray-50 dark:bg-black/40 dark:border-white/5">
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-0.5 text-gray-400 dark:text-gray-500">
-                                                        <Calendar size={14} />
-                                                    </div>
+                                                    <div className="mt-0.5 text-gray-400 dark:text-gray-500"><Calendar size={14} /></div>
                                                     <div>
-                                                        <p className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">Start Date</p>
+                                                        <p className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">{t.startDate || "Start Date"}</p>
                                                         <p className="text-xs font-semibold text-gray-900 dark:text-gray-200">{start}</p>
                                                     </div>
                                                 </div>
                                                 <div className="w-full h-px bg-gray-200 dark:bg-white/10"></div>
                                                 <div className="flex items-start gap-3">
-                                                    <div className="mt-0.5 text-gray-400 dark:text-gray-500">
-                                                        <Clock size={14} />
-                                                    </div>
+                                                    <div className="mt-0.5 text-gray-400 dark:text-gray-500"><Clock size={14} /></div>
                                                     <div>
-                                                        <p className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">End Date</p>
+                                                        <p className="text-[10px] font-bold tracking-wider text-gray-400 uppercase">{t.endDate || "End Date"}</p>
                                                         <p className="text-xs font-semibold text-gray-900 dark:text-gray-200">{end}</p>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
-                                    
 
                                         <div className="mt-5">
                                             {status === "completed" ? (
@@ -592,14 +541,14 @@ export default function Dashboard() {
                                                     to={`/elections/${e._id}/results`}
                                                     className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-bold text-gray-700 bg-gray-100 dark:bg-gray-800 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                                                 >
-                                                    View Results <ChevronRight size={16} />
+                                                    {t.viewResults || "View Results"} <ChevronRight size={16} />
                                                 </Link>
                                             ) : (
                                                 <Link
                                                     to={`/elections/${e._id}`}
                                                     className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-bold text-black bg-yellow-400 rounded-lg hover:bg-yellow-500 transition-all shadow-sm hover:shadow-md"
                                                 >
-                                                    Vote Now <ArrowRight size={16} />
+                                                    {t.voteNow || "Vote Now"} <ArrowRight size={16} />
                                                 </Link>
                                             )}
                                         </div>
@@ -616,8 +565,8 @@ export default function Dashboard() {
                                     <Filter className="text-gray-400" size={32} />
                                 </div>
                                 <div>
-                                    <p className="text-lg font-bold text-gray-900 dark:text-white">No elections found</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Try adjusting your search or filters.</p>
+                                    <p className="text-lg font-bold text-gray-900 dark:text-white">{t.noElections || "No elections found"}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{t.noElectionsSub || "Try adjusting filters."}</p>
                                 </div>
                             </motion.div>
                         )}

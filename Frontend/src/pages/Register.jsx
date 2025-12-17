@@ -1,12 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import api from "../api";
 import { useNavigate } from "react-router-dom";
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sun, Moon, User, Mail, Lock, Calendar, CreditCard, Upload, 
-  Check, Loader2, Eye, EyeOff, ShieldCheck, FileText, Scan, Binary, Fingerprint 
+  Loader2, Eye, EyeOff, ShieldCheck, FileText, Scan, Binary, Fingerprint,
+  Globe, ChevronDown
 } from 'lucide-react';
+
+// Import Shared Contexts
 import { useTheme } from "../context/ThemeContext"; 
+import { useLanguage } from "../context/LanguageContext"; 
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -25,14 +29,29 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
 
-  // use shared theme
-  const { isDarkMode, toggleTheme } = useTheme(); // Renamed to match context usually (isDarkMode)
+  // --- Shared Contexts ---
+  const { isDarkMode, toggleTheme } = useTheme(); 
+  const { lang, setLang, t, languages } = useLanguage(); 
+  
+  // --- Local State for UI ---
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const langMenuRef = useRef(null);
   const navigate = useNavigate();
+
+  // Close lang menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target)) {
+        setIsLangMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function handleChange(e) {
     const { name, value } = e.target;
     if (name === "name") {
-      
       if (!/^[a-zA-Z\s]*$/.test(value)) {
         return; 
       }
@@ -50,37 +69,30 @@ export default function Register() {
 
     // 1. Check for empty fields
     if (!form.name || !form.email || !form.password || !form.dob || !form.idType || !form.idNumber) {
-        setMsg({ type: "error", text: "Please fill in all required fields." });
+        setMsg({ type: "error", text: t.fillRequired });
         return;
     }
 
     if (!idFile) {
-        setMsg({ type: "error", text: "Please upload your ID document." });
+        setMsg({ type: "error", text: t.uploadIdError });
         return;
     }
 
-    // 2. Check Password Strength (Min 8 chars, 1 letter, 1 number/special char)
-    // Regex: ^(?=.*[A-Za-z])(?=.*\d|.*[@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$
+    // 2. Check Password Strength
     const passwordRegex = /^(?=.*[A-Za-z])(?=.*[\d@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$/;
     
     if (!passwordRegex.test(form.password)) {
         setMsg({ 
             type: "error", 
-            text: "Password must be at least 8 characters long and contain at least one letter and one number or special character." 
+            text: t.passwordStrengthError
         });
         return;
     }
 
     // 3. Check Passwords Match
     if (form.password !== confirmPassword) {
-      setMsg({ type: "error", text: "Passwords do not match" });
+      setMsg({ type: "error", text: t.passwordMatchError });
       return;
-    }
-
-    // 4. Check File Upload
-    if (!idFile) {
-        setMsg({ type: "error", text: "Please upload your ID document." });
-        return;
     }
 
     setMsg(null);
@@ -100,12 +112,11 @@ export default function Register() {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setMsg({ type: "success", text: res.data.msg || "Registration successful." });
+      setMsg({ type: "success", text: res.data.msg || t.regSuccess });
       setTimeout(() => navigate("/login"), 1500);
     } catch (err) {
       console.error(err);
-      const text =
-        err?.response?.data?.msg || err?.message || "Registration failed";
+      const text = err?.response?.data?.msg || err?.message || t.regFailed;
       setMsg({ type: "error", text });
     } finally {
       setLoading(false);
@@ -255,11 +266,56 @@ export default function Register() {
       {/* --- RIGHT PANEL: Registration Form --- */}
       <div className="w-full lg:w-[50%] xl:w-[45%] flex flex-col justify-center px-6 md:px-12 lg:px-16 py-8 relative z-20 bg-white dark:bg-[#0a0a0a] border-l border-gray-200 dark:border-gray-900/50 shadow-2xl lg:shadow-none transition-colors duration-500 overflow-y-auto">
          
-         {/* Theme Toggle */}
-         <div className="absolute z-50 top-6 right-6">
+         {/* Top Right Controls: Language & Theme */}
+         <div className="absolute z-50 flex items-center gap-3 top-6 right-6">
+            
+            {/* Language Selector */}
+            <div className="relative" ref={langMenuRef}>
+                <button 
+                    onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide"
+                >
+                    <Globe size={16} />
+                    <span>{(lang || 'en').toUpperCase()}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-300 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                    {isLangMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden py-1 z-50"
+                        >
+                            {languages.map((l) => (
+                                <button
+                                    key={l.code}
+                                    onClick={() => {
+                                        setLang(l.code);
+                                        setIsLangMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between transition-colors ${
+                                        lang === l.code 
+                                        ? 'bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-500 font-medium' 
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                    }`}
+                                >
+                                    <span>{l.name}</span>
+                                    {lang === l.code && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
+                                </button>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Theme Toggle */}
             <button 
               onClick={toggleTheme}
               className="p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-all hover:scale-105 active:scale-95 shadow-sm border border-gray-200 dark:border-gray-700"
+              title="Toggle Theme"
             >
                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
             </button>
@@ -271,19 +327,20 @@ export default function Register() {
          <div className="relative z-10 w-full max-w-lg mx-auto space-y-6">
             {/* Header */}
             <motion.div 
+              key={lang} // Re-animate text on language change
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
               className="text-center lg:text-left"
             >
               <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 border rounded-full bg-yellow-50 dark:bg-yellow-500/10 border-yellow-200 dark:border-yellow-500/20 text-yellow-700 dark:text-yellow-500 text-[10px] font-bold uppercase tracking-widest">
-                 <ShieldCheck size={12} /> Secure Registration
+                 <ShieldCheck size={12} /> {t.secureReg}
               </div>
               <h1 className="mb-2 text-3xl font-extrabold leading-tight tracking-tight text-gray-900 dark:text-white">
-                New User <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">Registration</span>
+                {t.newUser} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">{t.registration}</span>
               </h1>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                Create your secure digital identity for E-Voting Services.
+                {t.subtext}
               </p>
             </motion.div>
 
@@ -311,7 +368,7 @@ export default function Register() {
         
             {/* 1. Name Field */}
               <div className="space-y-1.5 group">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Full Name</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.fullName}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                       <User size={16} />
@@ -321,7 +378,7 @@ export default function Register() {
                       name="name" 
                       value={form.name}
                       onChange={handleChange}
-                      placeholder="Enter your full name"
+                      placeholder={t.namePlaceholder}
                       required 
                       autoComplete="username"
                       pattern="[A-Za-z\s]+" 
@@ -333,19 +390,19 @@ export default function Register() {
 
               {/* 2. Email Field */}
               <div className="space-y-1.5 group">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Email Address</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.email}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                       <Mail size={16} />
                    </div>
                    <input 
                       type="email" 
-                      name="email" // Matches state: form.email
+                      name="email" 
                       value={form.email}
                       onChange={handleChange}
-                      placeholder="Enter your email"
+                      placeholder={t.emailPlaceholder}
                       autoComplete="email"
-                      required // Added required
+                      required 
                       className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
                    />
                 </div>
@@ -354,7 +411,7 @@ export default function Register() {
               {/* 3. Password Row */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Password</label>
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.password}</label>
                     <div className="relative">
                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                           <Lock size={16} />
@@ -364,7 +421,7 @@ export default function Register() {
                           name="password"
                           value={form.password}
                           onChange={handleChange}
-                          placeholder="Create password"
+                          placeholder={t.passwordPlaceholder}
                           autoComplete="new-password"
                           required 
                           pattern="^(?=.*[A-Za-z])(?=.*[\d@$!%*#?&])[A-Za-z\d@$!%*#?&]{8,}$"
@@ -377,7 +434,7 @@ export default function Register() {
                     </div>
                   </div>
                   <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Confirm Password</label>
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.confirmPassword}</label>
                     <div className="relative">
                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                           <Lock size={16} />
@@ -388,8 +445,8 @@ export default function Register() {
                           value={confirmPassword}
                           onChange={handleChange}
                             autoComplete=" new-password"
-                          placeholder="Confirm password"
-                          required // Added required
+                          placeholder={t.confirmPasswordPlaceholder}
+                          required 
                           className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-10 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
                        />
                        <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
@@ -402,35 +459,35 @@ export default function Register() {
               {/* 4. ID Details Row */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Date of Birth</label>
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.dob}</label>
                     <div className="relative">
                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                           <Calendar size={16} />
                        </div>
                        <input 
                           type="date" 
-                          name="dob" // Matches state: form.dob
+                          name="dob" 
                           value={form.dob}
                           onChange={handleChange}
-                          required // Added required
+                          required 
                           className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all text-sm font-medium cursor-pointer [color-scheme:light] dark:[color-scheme:dark]"
                        />
                     </div>
                   </div>
                   <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">ID Type</label>
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.idType}</label>
                     <div className="relative">
                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                           <CreditCard size={16} />
                        </div>
                        <select 
-                          name="idType" // Matches state: form.idType
+                          name="idType" 
                           value={form.idType}
                           onChange={handleChange}
-                          required // Added required
+                          required 
                           className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all text-sm font-medium appearance-none"
                        >
-                          <option value="">Select ID</option>
+                          <option value="">{t.selectId}</option>
                           <option value="Aadhaar">Aadhaar</option>
                           <option value="VoterID">VoterID</option>
                           <option value="StudentID">StudentID</option>
@@ -442,18 +499,18 @@ export default function Register() {
 
               {/* 5. ID Number */}
               <div className="space-y-1.5 group">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">ID Number</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.idNumber}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                       <FileText size={16} />
                    </div>
                    <input 
                       type="text" 
-                      name="idNumber" // Matches state: form.idNumber
+                      name="idNumber" 
                       value={form.idNumber}
                       onChange={handleChange}
-                      placeholder="Enter ID number"
-                      required // Added required
+                      placeholder={t.idNumberPlaceholder}
+                      required 
                       className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium"
                    />
                 </div>
@@ -461,65 +518,64 @@ export default function Register() {
 
               {/* 6. File Upload */}
              <div className="space-y-1.5 group">
-                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Upload ID Document (Image/PDF)</label>
+                <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.uploadDoc}</label>
                 <div className="flex items-center gap-3">
                    <label className="px-4 py-2 text-xs font-bold text-black transition-colors bg-yellow-500 rounded shadow-sm cursor-pointer hover:bg-yellow-400">
-                      Choose File
+                      {t.chooseFile}
                       <input 
                         type="file" 
                         accept="image/*,application/pdf"
                         onChange={(e) => setIdFile(e.target.files?.[0] || null)}
                         className="hidden" 
-                        // Removed required attribute on hidden input
                       />
                    </label>
                    <span className="text-xs italic text-gray-500 dark:text-gray-400">
-                     {idFile ? idFile.name : "No file chosen"}
+                     {idFile ? idFile.name : t.noFile}
                    </span>
                 </div>
-              </div>
+             </div>
 
-              {/* Action Button */}
-              <button 
-                type="submit"
-                disabled={loading}
-                className={`w-full h-12 relative rounded-lg font-bold text-sm uppercase tracking-wider overflow-hidden transition-all duration-300 mt-4 ${
-                  loading ? 'bg-yellow-600 text-yellow-100 cursor-not-allowed' :
-                  'bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_4px_20px_rgba(234,179,8,0.2)] hover:shadow-[0_4px_25px_rgba(234,179,8,0.4)] hover:-translate-y-0.5'
-                }`}
-              >
-                 <div className="relative z-10 flex items-center justify-center gap-2">
-                    {loading ? (
-                       <>
-                         <Loader2 size={18} className="animate-spin" /> Processing Data...
-                       </>
-                    ) : (
-                       <>
-                         Complete Registration <Upload size={16} />
-                       </>
-                    )}
-                 </div>
-              </button>
-            </motion.form>
+             {/* Action Button */}
+             <button 
+               type="submit"
+               disabled={loading}
+               className={`w-full h-12 relative rounded-lg font-bold text-sm uppercase tracking-wider overflow-hidden transition-all duration-300 mt-4 ${
+                 loading ? 'bg-yellow-600 text-yellow-100 cursor-not-allowed' :
+                 'bg-yellow-500 hover:bg-yellow-400 text-black shadow-[0_4px_20px_rgba(234,179,8,0.2)] hover:shadow-[0_4px_25px_rgba(234,179,8,0.4)] hover:-translate-y-0.5'
+               }`}
+             >
+                <div className="relative z-10 flex items-center justify-center gap-2">
+                   {loading ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" /> {t.processing}
+                      </>
+                   ) : (
+                      <>
+                        {t.completeReg} <Upload size={16} />
+                      </>
+                   )}
+                </div>
+             </button>
+           </motion.form>
 
-            <div className="mt-4 text-center">
-               <p className="text-xs text-gray-500 dark:text-gray-400">
-                 Already have an account?{' '}
-                 <button onClick={() => navigate("/login")} className="font-bold text-yellow-600 dark:text-yellow-500 hover:underline">
-                   Login
-                 </button>
-               </p>
-            </div>
+           <div className="mt-4 text-center">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {t.alreadyAccount}{' '}
+                <button onClick={() => navigate("/login")} className="font-bold text-yellow-600 dark:text-yellow-500 hover:underline">
+                  {t.login}
+                </button>
+              </p>
+           </div>
 
-            {/* Security Footer Strip */}
-            <div className="flex items-center justify-center gap-6 py-3 mt-8 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-t border-gray-200 opacity-80 dark:border-gray-800">
-               <span className="flex items-center gap-1"><Lock size={10} /> Secure Access</span>
-               <span>|</span>
-               <span>IP Logged</span>
-            </div>
-         </div>
-      </div>
+           {/* Security Footer Strip */}
+           <div className="flex items-center justify-center gap-6 py-3 mt-8 text-[9px] font-bold text-gray-400 uppercase tracking-widest border-t border-gray-200 opacity-80 dark:border-gray-800">
+              <span className="flex items-center gap-1"><Lock size={10} /> {t.secureAccess}</span>
+              <span>|</span>
+              <span>{t.ipLogged}</span>
+           </div>
+        </div>
+     </div>
 
-    </div>
-  );
-};
+   </div>
+ );
+}

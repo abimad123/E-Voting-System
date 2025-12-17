@@ -5,27 +5,35 @@ import { loadTurnstileScript } from "../utils/loadTurnstile";
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sun, Moon, User, Lock, ArrowRight, Loader2, AlertCircle, CheckCircle, 
-  ShieldCheck, Database, Check, Server, FileKey, Key, Activity 
+  ShieldCheck, Database, Check, Server, FileKey, Key, Activity, Globe, ChevronDown
 } from "lucide-react";
-
-// Import the shared theme hook
+import { useLanguage } from "../context/LanguageContext";
 import { useTheme } from "../context/ThemeContext";
-
-
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "", turnstile: "" });
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState(null);
-  const [currentLogIndex, setCurrentLogIndex] = useState(0); // For right panel animation
-  
-  // USE THE SHARED THEME
+  const [currentLogIndex, setCurrentLogIndex] = useState(0); 
+  const { lang, setLang, t, languages } = useLanguage(); 
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const langMenuRef = useRef(null);
+  // --- USE SHARED THEME CONTEXT ---
   const { isDarkMode, toggleTheme } = useTheme();
   
   const navigate = useNavigate();
   const widgetRef = useRef(null);
   const widgetIdRef = useRef(null);
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target)) {
+        setIsLangMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   function handleChange(e) {
     setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
@@ -46,7 +54,7 @@ export default function Login() {
 
         widgetIdRef.current = window.turnstile.render(widgetRef.current, {
           sitekey: siteKey,
-          theme: isDarkMode ? 'dark' : 'light', // Dynamic theme based on context
+          theme: isDarkMode ? 'dark' : 'light',
           callback: (token) => setForm((s) => ({ ...s, turnstile: token })),
           "error-callback": () => setForm((s) => ({ ...s, turnstile: "" })),
           "expired-callback": () => setForm((s) => ({ ...s, turnstile: "" })),
@@ -62,7 +70,7 @@ export default function Login() {
         }
       } catch (e) { }
     };
-  }, [isDarkMode]);
+  }, [isDarkMode, lang]); // Reload if language changes
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -71,7 +79,7 @@ export default function Login() {
 
     const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
     if (siteKey && !form.turnstile) {
-      setMsg({ type: "error", text: "Please complete the verification (Turnstile)." });
+      setMsg({ type: "error", text: t.turnstileError });
       setLoading(false);
       return;
     }
@@ -82,7 +90,7 @@ export default function Login() {
       const user = res.data.user;
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
-      setMsg({ type: "success", text: "Login successful — redirecting..." });
+      setMsg({ type: "success", text: t.loginSuccess });
       
       setTimeout(() => {
         if (user.role === "admin") navigate("/admin");
@@ -90,7 +98,7 @@ export default function Login() {
       }, 800);
     } catch (err) {
       console.error(err);
-      const text = err?.response?.data?.msg || err?.message || "Login failed";
+      const text = err?.response?.data?.msg || err?.message || t.loginFailed;
       setMsg({ type: "error", text });
     } finally {
       setLoading(false);
@@ -103,8 +111,52 @@ export default function Login() {
       {/* --- LEFT PANEL: Login Form --- */}
       <div className="w-full lg:w-[45%] xl:w-[40%] flex flex-col justify-center px-6 md:px-12 lg:px-16 xl:px-24 py-12 relative z-20 bg-white dark:bg-[#0a0a0a] border-r border-gray-200 dark:border-gray-900/50 shadow-2xl lg:shadow-none transition-colors duration-500">
          
-         {/* Theme Toggle - Absolute Position */}
-         <div className="absolute z-50 top-6 right-6">
+         {/* Top Right Controls: Language & Theme */}
+         <div className="absolute z-50 flex items-center gap-3 top-6 right-6">
+            
+            {/* Language Selector */}
+            <div className="relative" ref={langMenuRef}>
+                <button 
+                    onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all border border-gray-200 dark:border-gray-700 text-xs font-semibold uppercase tracking-wide"
+                >
+                    <Globe size={16} />
+                    <span>{lang.toUpperCase()}</span>
+                    <ChevronDown size={14} className={`transition-transform duration-300 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+
+                <AnimatePresence>
+                    {isLangMenuOpen && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
+                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden py-1 z-50"
+                        >
+                            {languages.map((l) => (
+                                <button
+                                    key={l.code}
+                                    onClick={() => {
+                                        setLang(l.code);
+                                        setIsLangMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-4 py-3 text-sm flex items-center justify-between transition-colors ${
+                                        lang === l.code 
+                                        ? 'bg-yellow-50 dark:bg-yellow-900/10 text-yellow-600 dark:text-yellow-500 font-medium' 
+                                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                                    }`}
+                                >
+                                    <span>{l.name}</span>
+                                    {lang === l.code && <div className="w-1.5 h-1.5 rounded-full bg-yellow-500" />}
+                                </button>
+                            ))}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+
+            {/* Theme Toggle */}
             <button 
               onClick={toggleTheme}
               className="p-2.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-400 transition-all hover:scale-105 active:scale-95 shadow-sm border border-gray-200 dark:border-gray-700"
@@ -120,6 +172,7 @@ export default function Login() {
          <div className="relative z-10 w-full max-w-md mx-auto space-y-8">
             {/* Header */}
             <motion.div 
+              key={lang} // Re-animate on lang change
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
@@ -133,13 +186,13 @@ export default function Login() {
                     />
                  </div>
                  <div className="h-8 w-[1px] bg-gray-300 dark:bg-gray-800"></div>
-                 <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">Secure Access Portal</span>
+                 <span className="text-xs font-bold tracking-widest text-gray-500 uppercase">{t.portalName}</span>
               </div>
               <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-gray-900 dark:text-white">
-                Welcome <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">Back</span>
+                {t.welcomePrefix} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">{t.welcomeHighlight}</span>
               </h1>
               <p className="mt-3 text-sm font-medium leading-relaxed text-gray-600 dark:text-gray-400">
-                Please authenticate your digital identity to access the National E-Voting dashboard.
+                {t.subtext}
               </p>
             </motion.div>
 
@@ -169,7 +222,7 @@ export default function Login() {
             >
               {/* Email */}
               <div className="space-y-2 group">
-                <label className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Username / Email ID</label>
+                <label className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.emailLabel}</label>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                       <User size={18} />
@@ -179,7 +232,7 @@ export default function Login() {
                       type="email" 
                       value={form.email}
                       onChange={handleChange}
-                      placeholder="Enter your registered email"
+                      placeholder={t.emailPlaceholder}
                       required
                       autoComplete="username"
                       className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-11 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/10 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium shadow-inner"
@@ -190,8 +243,8 @@ export default function Login() {
               {/* Password */}
               <div className="space-y-2 group">
                 <div className="flex items-center justify-between">
-                   <label className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">Password</label>
-                   <button type="button" onClick={() => navigate("/forgot-password")} className="text-[11px] font-bold text-yellow-600 dark:text-yellow-500 hover:text-yellow-700 dark:hover:text-yellow-400 transition-colors">FORGOT PASSWORD?</button>
+                   <label className="text-[11px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.passwordLabel}</label>
+                   <button type="button" onClick={() => navigate("/forgot-password")} className="text-[11px] font-bold text-yellow-600 dark:text-yellow-500 hover:text-yellow-700 dark:hover:text-yellow-400 transition-colors">{t.forgotPassword}</button>
                 </div>
                 <div className="relative">
                    <div className="absolute inset-y-0 left-0 flex items-center pl-4 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
@@ -202,7 +255,7 @@ export default function Login() {
                       type="password" 
                       value={form.password}
                       onChange={handleChange}
-                      placeholder="Enter your secure password"
+                      placeholder={t.passwordPlaceholder}
                       required
                       autoComplete="current-password"
                       className="w-full bg-gray-50 dark:bg-[#121212] text-gray-900 dark:text-gray-200 border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-11 pr-4 focus:outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/10 transition-all placeholder-gray-400 dark:placeholder-gray-700 text-sm font-medium shadow-inner"
@@ -227,11 +280,11 @@ export default function Login() {
                  <div className="relative z-10 flex items-center justify-center gap-2">
                     {loading ? (
                        <>
-                         <Loader2 size={18} className="animate-spin" /> Authenticating...
+                         <Loader2 size={18} className="animate-spin" /> {t.authenticating}
                        </>
                     ) : (
                        <>
-                         Secure Login <ArrowRight size={18} />
+                         {t.loginBtn} <ArrowRight size={18} />
                        </>
                     )}
                  </div>
@@ -246,18 +299,18 @@ export default function Login() {
                className="flex flex-col items-center pt-8 border-t border-gray-200 dark:border-gray-900"
             >
                <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
-                  Don't have an account?{" "}
+                  {t.dontHaveAccount}{" "}
                   <button 
                       onClick={() => navigate("/register")} 
                       className="font-bold text-yellow-600 dark:text-yellow-500 hover:underline"
                   >
-                      Register Now
+                      {t.registerNow}
                   </button>
                </p>
                <div className="flex justify-between w-full text-xs font-medium text-gray-500 dark:text-gray-600">
-                   <a href="#" className="transition-colors hover:text-gray-800 dark:hover:text-gray-400">Privacy Policy</a>
-                   <a href="#" className="transition-colors hover:text-gray-800 dark:hover:text-gray-400">Terms of Service</a>
-                   <a href="#" className="transition-colors hover:text-gray-800 dark:hover:text-gray-400">Help Center</a>
+                   <a href="#" className="transition-colors hover:text-gray-800 dark:hover:text-gray-400">{t.privacy}</a>
+                   <a href="#" className="transition-colors hover:text-gray-800 dark:hover:text-gray-400">{t.terms}</a>
+                   <a href="#" className="transition-colors hover:text-gray-800 dark:hover:text-gray-400">{t.help}</a>
                </div>
             </motion.div>
          </div>
@@ -376,4 +429,4 @@ export default function Login() {
 
     </div>
   );
-};
+}

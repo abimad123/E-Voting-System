@@ -1,12 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, CheckCircle2, AlertCircle, 
   Vote, BarChart2, User, Loader2, Share2, ExternalLink,
-  ShieldCheck, Check, Shield
+  ShieldCheck, Check, Shield, Globe, ChevronDown, Sun, Moon
 } from 'lucide-react';
+
+// Import Shared Contexts
+import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "../context/ThemeContext";
 
 export default function ElectionDetail() {
   const { id } = useParams();
@@ -22,7 +26,26 @@ export default function ElectionDetail() {
   const [votingFor, setVotingFor] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   
+  // --- USE SHARED CONTEXTS ---
+  const { lang, setLang, t, languages } = useLanguage(); 
+  const { isDarkMode, toggleTheme } = useTheme();
+  
+  // Local state for UI
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const langMenuRef = useRef(null);
+
   const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+  // Close lang menu on click outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target)) {
+        setIsLangMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -36,8 +59,6 @@ export default function ElectionDetail() {
           api.get(`/api/elections/${id}/vote-status`),
           api.get("/api/auth/me"),
         ]);
-
-        console.log("Vote Status Response:", voteRes.data);
 
         setHasVoted(!!voteRes.data.hasVoted);
         
@@ -77,7 +98,7 @@ export default function ElectionDetail() {
   const handleVote = async (candidateId) => {
     // 1. Guard Clause for Admin
     if (isAdmin) {
-        setMsg({ type: "error", text: "Administrators are not allowed to cast votes." });
+        setMsg({ type: "error", text: t.adminVoteError });
         return;
     }
 
@@ -86,7 +107,7 @@ export default function ElectionDetail() {
     
     try {
       const res = await api.post(`/api/elections/${id}/vote`, { candidateId });
-      setMsg({ type: "success", text: res.data.msg || "Vote cast successfully" });
+      setMsg({ type: "success", text: res.data.msg || t.voteSuccess });
       
       setHasVoted(true);
       setVotedCandidateId(candidateId);
@@ -107,18 +128,19 @@ export default function ElectionDetail() {
   if (loading) return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] flex items-center justify-center">
        <div className="flex items-center gap-2 text-[#0B2447] dark:text-yellow-400 font-semibold animate-pulse">
-         <Loader2 className="animate-spin" /> Loading election data...
+         <Loader2 className="animate-spin" /> {t.loading}
        </div>
     </div>
   );
 
   if (!election) return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] p-6 text-center text-gray-500">
-      Election not found.
+      {t.notFound}
     </div>
   );
 
   const now = new Date();
+  const locale = lang === 'en' ? 'en-US' : 'en-IN'; // Dynamic Date Format
   const start = election.startTime ? new Date(election.startTime) : null;
   const end = election.endTime ? new Date(election.endTime) : null;
 
@@ -130,9 +152,8 @@ export default function ElectionDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] pb-20 transition-colors duration-500 font-sans">
-      
 
-     <div className="container mx-auto px-4 max-w-[1400px] mt-8">
+      <div className="container mx-auto px-4 max-w-[1400px] mt-8">
         
         {/* --- Hero Section --- */}
         <motion.div 
@@ -159,9 +180,9 @@ export default function ElectionDetail() {
                           <span className="absolute inline-flex w-full h-full bg-green-400 rounded-full opacity-75 animate-ping"></span>
                           <span className="relative inline-flex w-2 h-2 bg-green-500 rounded-full"></span>
                         </span>}
-                        {isCompleted ? "Completed" : isActive ? "Active" : "Upcoming"}
+                        {isCompleted ? t.completed : isActive ? t.active : t.upcoming}
                      </span>
-                     <span className="text-xs font-medium text-gray-400">ID: {election._id.slice(-6).toUpperCase()}</span>
+                     <span className="text-xs font-medium text-gray-400">{t.id}: {election._id.slice(-6).toUpperCase()}</span>
                   </div>
                   
                   <h1 className="text-3xl font-black leading-tight tracking-tight text-gray-900 md:text-5xl dark:text-white">
@@ -180,8 +201,8 @@ export default function ElectionDetail() {
                        <Calendar size={16} className="text-gray-500" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-gray-400 uppercase">Starts</p>
-                       <p className="font-semibold">{start.toLocaleString()}</p>
+                       <p className="text-[10px] font-bold text-gray-400 uppercase">{t.starts}</p>
+                       <p className="font-semibold">{start.toLocaleString(locale)}</p>
                     </div>
                   </div>
                   )}
@@ -191,8 +212,8 @@ export default function ElectionDetail() {
                        <Clock size={16} className="text-gray-500" />
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-gray-400 uppercase">Ends</p>
-                       <p className="font-semibold">{end.toLocaleString()}</p>
+                       <p className="text-[10px] font-bold text-gray-400 uppercase">{t.ends}</p>
+                       <p className="font-semibold">{end.toLocaleString(locale)}</p>
                     </div>
                   </div>
                   )}
@@ -203,7 +224,7 @@ export default function ElectionDetail() {
               <div className="flex items-center justify-center w-24 h-24 transition-transform transform shadow-lg bg-gradient-to-br from-yellow-400 to-orange-500 rounded-2xl rotate-3 hover:rotate-6">
                 <Vote size={40} className="text-white" />
               </div>
-              <p className="mt-4 text-xs font-bold tracking-widest text-gray-400 uppercase">Official Ballot</p>
+              <p className="mt-4 text-xs font-bold tracking-widest text-gray-400 uppercase">{t.officialBallot}</p>
             </div>
           </div>
         </motion.div>
@@ -228,19 +249,19 @@ export default function ElectionDetail() {
           {isAdmin && (
              <motion.div initial={{opacity:0}} animate={{opacity:1}} className="flex items-center gap-3 p-4 mb-8 text-blue-800 border border-blue-200 rounded-lg bg-blue-50 dark:bg-blue-900/10 dark:text-blue-200 dark:border-blue-900/30">
                 <Shield size={20} />
-                <span><strong>Admin Mode:</strong> You are viewing this election as an administrator. Voting is disabled for your account.</span>
+                <span>{t.adminModeMsg}</span>
              </motion.div>
           )}
 
           {!canVote && !isAdmin && (
              <motion.div initial={{opacity:0}} animate={{opacity:1}} className="flex items-center gap-2 p-4 mb-8 text-yellow-800 border border-yellow-200 rounded-lg bg-yellow-50 dark:bg-yellow-900/10 dark:text-yellow-200 dark:border-yellow-900/30">
                 <AlertCircle size={20} />
-                <span>You must be <span className="font-bold underline">verified</span> to cast a vote. Please complete KYC in your profile.</span>
+                <span>{t.verifyMsg} <span className="font-bold underline">{t.verifiedLink}</span></span>
              </motion.div>
           )}
         </AnimatePresence>
 
-    {/* --- Candidates Grid --- */}
+        {/* --- Candidates Grid --- */}
         <div className="space-y-6">
           <div className="flex items-end justify-between px-2">
              <div className="flex items-center gap-3">
@@ -248,12 +269,12 @@ export default function ElectionDetail() {
                    <User size={20} />
                 </div>
                 <div>
-                   <h2 className="text-2xl font-black text-gray-900 dark:text-white">Candidates</h2>
-                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Select one candidate to cast your vote</p>
+                   <h2 className="text-2xl font-black text-gray-900 dark:text-white">{t.candidates}</h2>
+                   <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{t.selectCandidate}</p>
                 </div>
              </div>
              <div className="hidden px-3 py-1 text-xs font-bold tracking-widest text-gray-400 uppercase border border-gray-200 rounded-full md:block dark:border-zinc-800">
-                {candidates.length} Qualified Candidates
+                {candidates.length} {t.qualified}
              </div>
           </div>
 
@@ -264,8 +285,8 @@ export default function ElectionDetail() {
                       <User size={32} />
                    </div>
                    <div className="space-y-1">
-                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">No Candidates Yet</h3>
-                      <p className="max-w-sm mx-auto text-gray-500 dark:text-gray-400">This election has just been created. Candidates will appear here once registered.</p>
+                      <h3 className="text-lg font-bold text-gray-900 dark:text-white">{t.noCandidates}</h3>
+                      <p className="max-w-sm mx-auto text-gray-500 dark:text-gray-400">{t.noCandidatesDesc}</p>
                    </div>
                 </div>
             ) : (
@@ -273,7 +294,6 @@ export default function ElectionDetail() {
                   const isSelected = votedCandidateId === candidate._id; 
                   const isVoting = votingFor === candidate._id;
                   
-                  // Disable if: Not Active OR User already voted (unless it's the one they voted for) OR User unverified OR Admin
                   const isDisabled = !isActive || (!canVote) || (hasVoted && !isSelected) || isAdmin;
 
                   return (
@@ -282,7 +302,6 @@ export default function ElectionDetail() {
                       initial={{ opacity: 0, y: 30 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
-                      // 👇 THIS IS THE UPDATED LINE 👇
                       className={`group relative flex flex-col overflow-hidden rounded-3xl border-2 transition-all duration-300 ${
                          isSelected
                            ? "bg-green-50/50 dark:bg-[#1a1a1a] border-green-500 dark:border-green-500 shadow-xl shadow-green-500/10 scale-[1.02]"
@@ -322,11 +341,11 @@ export default function ElectionDetail() {
                                 {candidate.name}
                              </h3>
                              <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400 line-clamp-3">
-                                {candidate.description || "No manifesto provided for this candidate."}
+                                {candidate.description || t.noManifesto}
                              </p>
                              
                              <button className="flex items-center gap-1.5 text-xs font-bold text-[#0B2447] dark:text-white hover:underline underline-offset-4 decoration-2 decoration-yellow-500 transition-all pt-1">
-                                Read Full Manifesto <ExternalLink size={12} className="text-yellow-500" />
+                                {t.readManifesto} <ExternalLink size={12} className="text-yellow-500" />
                              </button>
                           </div>
 
@@ -336,7 +355,7 @@ export default function ElectionDetail() {
                                 <div className="flex-1 h-px bg-gray-100 dark:bg-zinc-800"></div>
                                 <div className="flex items-center gap-2 font-mono text-xs font-bold text-gray-500 dark:text-gray-400">
                                   <BarChart2 size={14} />
-                                  <span>{candidate.votesCount || 0} Votes</span>
+                                  <span>{candidate.votesCount || 0} {t.votes}</span>
                                 </div>
                               </div>
                           )}
@@ -350,7 +369,7 @@ export default function ElectionDetail() {
                        }`}>
                           {isSelected ? (
                               <div className="w-full py-3.5 rounded-xl bg-green-500 text-white font-bold text-sm tracking-wide flex items-center justify-center gap-2 shadow-lg shadow-green-500/20">
-                                 <Check size={18} strokeWidth={3} /> Voted Successfully
+                                 <Check size={18} strokeWidth={3} /> {t.votedSuccess}
                               </div>
                           ) : (
                               <button
@@ -364,18 +383,18 @@ export default function ElectionDetail() {
                               >
                                  {isVoting ? (
                                     <>
-                                       <Loader2 size={16} className="animate-spin" /> Confirming...
+                                       <Loader2 size={16} className="animate-spin" /> {t.confirming}
                                     </>
                                  ) : (
                                     <>
                                        {isAdmin ? (
-                                          <span className="flex items-center gap-2 opacity-70"><Shield size={14}/> Admin View Only</span>
+                                          <span className="flex items-center gap-2 opacity-70"><Shield size={14}/> {t.adminViewOnly}</span>
                                        ) : hasVoted ? (
-                                          "Unavailable"
+                                          t.unavailable
                                        ) : isActive ? (
-                                          `Vote for ${candidate.name.split(' ')[0]}`
+                                          `${t.voteFor} ${candidate.name.split(' ')[0]}`
                                        ) : (
-                                          "Election Closed"
+                                          t.electionClosed
                                        )}
                                     </>
                                  )}

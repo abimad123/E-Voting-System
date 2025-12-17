@@ -1,14 +1,23 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   ArrowLeft, Mail, Phone, MapPin, Clock, Send, 
   MessageSquare, CheckCircle, AlertCircle, Loader2 
 } from 'lucide-react';
 
+// Import Shared Contexts
+import { useLanguage } from "../context/LanguageContext";
+import { useTheme } from "../context/ThemeContext"; 
+
 export default function Contact() {
   const navigate = useNavigate();
+  
+  // --- USE SHARED CONTEXTS ---
+  const { t } = useLanguage(); 
+  const { isDarkMode } = useTheme();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -55,7 +64,7 @@ export default function Contact() {
       setSubmitState('success');
       setMsg({
         type: "success",
-        text: "Your message has been submitted. Our support team will contact you soon.",
+        text: t.querySuccessMsg || "Your message has been submitted.",
       });
 
       setForm({
@@ -68,7 +77,7 @@ export default function Contact() {
     } catch (err) {
       console.error(err);
       setSubmitState('idle');
-      const text = err?.response?.data?.msg || err?.message || "Unable to send your message. Please try again later.";
+      const text = err?.response?.data?.msg || err?.message || "Unable to send your message.";
       setMsg({ type: "error", text });
     }
   }
@@ -90,16 +99,16 @@ export default function Contact() {
       {/* --- Sticky Header --- */}
       <div className="bg-white/80 dark:bg-[#151515]/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
         <div className="container flex items-center justify-between px-4 py-4 mx-auto">
-            <button
-            onClick={() => navigate("/dashboard")}
+            {/* <button
+            onClick={() => navigate("/login")}
             className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm md:text-sm hover:bg-gray-50 dark:bg-yellow-400 dark:text-black dark:hover:bg-yellow-300 transition-all transform hover:-translate-y-0.5"
           >
             <ArrowLeft size={16} />
-            Back to Dashboard
-          </button>
+            {t.backToDash || "Back"}
+          </button> */}
           <div className="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              Official Support Online
+              {t.supportOnline || "Official Support Online"}
           </div>
         </div>
       </div>
@@ -116,17 +125,17 @@ export default function Contact() {
            <div className="w-full space-y-8 lg:w-1/3">
               <motion.div variants={itemVariants}>
                  <h1 className="mb-2 text-4xl font-extrabold text-gray-900 dark:text-white">
-                   Contact <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">Support</span>
+                   {t.contactTitle || "Contact"} <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-600 to-orange-500 dark:from-yellow-400 dark:to-orange-500">Support</span>
                  </h1>
                  <p className="text-lg text-gray-500 dark:text-gray-400">
-                   We are here to help you with any voting related queries or technical issues.
+                   {t.contactSub || "We are here to help you."}
                  </p>
               </motion.div>
 
               <motion.div variants={itemVariants} className="space-y-4">
                  <ContactCard 
                    icon={<MapPin size={24} />}
-                   title="Headquarters"
+                   title={t.headquarters || "Headquarters"}
                    details={
                      <>
                        National E-Voting Cell, Ministry of Electronics & IT,<br/>
@@ -137,13 +146,13 @@ export default function Contact() {
                  />
                  <ContactCard 
                    icon={<Clock size={24} />}
-                   title="Support Hours"
+                   title={t.supportHours || "Support Hours"}
                    details="Mon – Fri, 9:00 AM to 6:00 PM IST"
                    color="orange"
                  />
                  <ContactCard 
                    icon={<Phone size={24} />}
-                   title="Helpline (Toll Free)"
+                   title={t.helpline || "Helpline"}
                    details="1800-111-2222"
                    color="green"
                    isLink
@@ -151,7 +160,7 @@ export default function Contact() {
                  />
                  <ContactCard 
                    icon={<Mail size={24} />}
-                   title="Email Support"
+                   title={t.emailSupport || "Email Support"}
                    details="support@e-voting.gov.in"
                    color="purple"
                    isLink
@@ -163,7 +172,7 @@ export default function Contact() {
                  <div className="flex gap-3">
                     <AlertCircle size={20} className="text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
                     <p className="text-xs leading-relaxed text-blue-800 dark:text-blue-300">
-                       <strong>Note:</strong> For urgent election-day issues, please call the helpline for priority assistance.
+                       <strong>Note:</strong> {t.urgentNote || "For urgent election-day issues, please call the helpline."}
                     </p>
                  </div>
               </motion.div>
@@ -182,8 +191,8 @@ export default function Contact() {
                           <MessageSquare size={24} />
                        </div>
                        <div>
-                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">Send us a Message</h2>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Fill out the form below and we will get back to you shortly.</p>
+                          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t.sendMessage || "Send us a Message"}</h2>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">{t.fillForm || "Fill out the form below."}</p>
                        </div>
                     </div>
 
@@ -207,9 +216,9 @@ export default function Contact() {
                           <div className="flex items-center justify-center w-20 h-20 mb-4 text-green-600 bg-green-100 rounded-full dark:bg-green-900/20 dark:text-green-500">
                              <CheckCircle size={40} strokeWidth={3} />
                           </div>
-                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">Query Submitted!</h3>
+                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">{t.querySubmitted || "Query Submitted!"}</h3>
                           <p className="max-w-md text-gray-500 dark:text-gray-400">
-                             Your ticket has been created. A support representative will contact you at <strong>{form.email}</strong> shortly.
+                             {t.querySuccessMsg}
                           </p>
                           <button 
                             onClick={() => {
@@ -219,14 +228,14 @@ export default function Contact() {
                             }}
                             className="mt-6 font-bold text-yellow-600 dark:text-yellow-500 hover:underline"
                           >
-                             Submit Another Query
+                             {t.submitAnother || "Submit Another Query"}
                           </button>
                        </motion.div>
                     ) : (
                        <form onSubmit={handleSubmit} className="space-y-6">
                           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                              <div>
-                                <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Full Name <span className="text-red-500">*</span></label>
+                                <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.fullName || "Full Name"} <span className="text-red-500">*</span></label>
                                 <input 
                                   name="name"
                                   value={form.name}
@@ -236,7 +245,7 @@ export default function Contact() {
                                 />
                              </div>
                              <div>
-                                <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Email Address <span className="text-red-500">*</span></label>
+                                <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.emailAddress || "Email Address"} <span className="text-red-500">*</span></label>
                                 <input 
                                   name="email"
                                   type="email"
@@ -249,14 +258,14 @@ export default function Contact() {
                           </div>
 
                           <div>
-                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Query Type <span className="text-red-500">*</span></label>
+                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.queryType || "Query Type"} <span className="text-red-500">*</span></label>
                              <select 
                                 name="category"
                                 value={form.category}
                                 onChange={handleChange}
                                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-[#1a1a1a] border border-gray-300 dark:border-zinc-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#0B2447] dark:focus:ring-yellow-400 focus:border-transparent transition-all"
                              >
-                                <option value="">Select a category</option>
+                                <option value="">{t.selectCategory || "Select a category"}</option>
                                 <option value="login">Login / OTP Issue</option>
                                 <option value="registration">Registration / KYC Issue</option>
                                 <option value="voting">Voting Process Issue</option>
@@ -266,7 +275,7 @@ export default function Contact() {
                           </div>
 
                           <div>
-                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Subject <span className="text-red-500">*</span></label>
+                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.subject || "Subject"} <span className="text-red-500">*</span></label>
                              <input 
                                 name="subject"
                                 value={form.subject}
@@ -277,7 +286,7 @@ export default function Contact() {
                           </div>
 
                           <div>
-                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Detailed Description <span className="text-red-500">*</span></label>
+                             <label className="block mb-1.5 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{t.description || "Detailed Description"} <span className="text-red-500">*</span></label>
                              <textarea 
                                 name="message"
                                 value={form.message}
@@ -296,11 +305,11 @@ export default function Contact() {
                              >
                                 {submitState === 'processing' ? (
                                    <>
-                                     <Loader2 size={18} className="animate-spin" /> Sending...
+                                     <Loader2 size={18} className="animate-spin" /> {t.sending || "Sending..."}
                                    </>
                                 ) : (
                                    <>
-                                     Submit Query <Send size={18} />
+                                     {t.submitQuery || "Submit Query"} <Send size={18} />
                                    </>
                                 )}
                              </button>
