@@ -167,12 +167,18 @@ export default function Dashboard() {
                   transition={{ duration: 0.5, delay: 0.3 }}
                   className="flex flex-col items-center justify-center gap-4 sm:flex-row lg:justify-start"
                 >
-                  <button className="w-full sm:w-auto relative px-8 py-4 bg-yellow-500 text-black font-bold text-base rounded-lg overflow-hidden transition-all hover:scale-105 hover:shadow-xl dark:hover:shadow-[0_0_25px_rgba(234,179,8,0.4)] group shadow-lg">
-                    <span className="relative z-10 flex items-center justify-center gap-2">
-                      Cast Your Vote <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
-                    </span>
-                    <div className="absolute inset-0 transition-transform duration-300 ease-out translate-y-full bg-white/20 group-hover:translate-y-0"></div>
-                  </button>
+                 <button 
+  // ADD THIS onClick function 👇
+  onClick={() => {
+    document.getElementById('election-dashboard')?.scrollIntoView({ behavior: 'smooth' });
+  }}
+  className="w-full sm:w-auto relative px-8 py-4 bg-yellow-500 text-black font-bold text-base rounded-lg overflow-hidden transition-all hover:scale-105 hover:shadow-xl dark:hover:shadow-[0_0_25px_rgba(234,179,8,0.4)] group shadow-lg"
+>
+  <span className="relative z-10 flex items-center justify-center gap-2">
+     Cast Your Vote <ArrowRight size={20} className="transition-transform group-hover:translate-x-1" />
+  </span>
+  <div className="absolute inset-0 transition-transform duration-300 ease-out translate-y-full bg-white/20 group-hover:translate-y-0"></div>
+</button>
                   
                   <button onClick={() => navigate("/help")} className="flex items-center justify-center w-full gap-2 px-8 py-4 text-base font-medium text-gray-700 transition-all bg-white border border-gray-200 rounded-lg shadow-sm sm:w-auto dark:bg-white/5 dark:border-white/10 dark:text-white hover:bg-gray-50 dark:hover:bg-white/10 hover:border-gray-300 dark:hover:border-white/20 backdrop-blur-sm hover:shadow-md">
                     <ShieldCheck size={20} className="text-gray-500 dark:text-gray-400" />
@@ -427,7 +433,7 @@ export default function Dashboard() {
                 {/* Dashboard Toolbar */}
                 <div className="flex flex-col items-end justify-between gap-4 pb-4 border-b border-gray-200 md:flex-row md:items-center dark:border-gray-800">
                     <div className="space-y-1">
-                        <h2 className="flex items-center gap-2 text-2xl font-bold text-gray-900 transition-colors dark:text-white">
+                        <h2  id="election-dashboard" className="flex items-center gap-2 text-2xl font-bold text-gray-900 transition-colors dark:text-white">
                             <Layers className="text-yellow-500" /> {t.dashboardTitle || "Election Dashboard"}
                         </h2>
                         <p className="text-sm text-gray-500 dark:text-gray-400">{t.dashboardSubtitle || "Manage polls"}</p>
