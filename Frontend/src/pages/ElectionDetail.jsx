@@ -5,7 +5,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowLeft, Calendar, Clock, CheckCircle2, AlertCircle, 
   Vote, BarChart2, User, Loader2, Share2, ExternalLink,
-  ShieldCheck, Check, Shield, Globe, ChevronDown, Sun, Moon
+  ShieldCheck, Check, Shield, Globe, ChevronDown, Sun, Moon,
+  // New Icons added for the modal
+  X, ShieldAlert, Fingerprint, Lock, ChevronRight
 } from 'lucide-react';
 
 // Import Shared Contexts
@@ -26,6 +28,9 @@ export default function ElectionDetail() {
   const [votingFor, setVotingFor] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
   
+  // --- NEW STATE FOR MODAL ---
+  const [candidateToConfirm, setCandidateToConfirm] = useState(null);
+
   // --- USE SHARED CONTEXTS ---
   const { lang, setLang, t, languages } = useLanguage(); 
   const { isDarkMode, toggleTheme } = useTheme();
@@ -73,9 +78,9 @@ export default function ElectionDetail() {
         }
 
         setCanVote(
-  meRes.data.user.verificationStatus === "approved" || 
-  meRes.data.user.verificationStatus === "verified"
-);
+          meRes.data.user.verificationStatus === "approved" || 
+          meRes.data.user.verificationStatus === "verified"
+        );
         setCurrentUser(meRes.data.user);
 
       } catch (err) {
@@ -97,6 +102,12 @@ export default function ElectionDetail() {
 
   // Check if current user is admin
   const isAdmin = currentUser?.role === 'admin';
+
+  // --- MODIFIED: Execute vote after confirmation ---
+  const executeVote = (candidateId) => {
+      setCandidateToConfirm(null); // Close modal
+      handleVote(candidateId); // Call original logic
+  };
 
   const handleVote = async (candidateId) => {
     // 1. Guard Clause for Admin
@@ -143,7 +154,7 @@ export default function ElectionDetail() {
   );
 
   const now = new Date();
-  const locale = lang === 'en' ? 'en-US' : 'en-IN'; // Dynamic Date Format
+  const locale = lang === 'en' ? 'en-US' : 'en-IN'; 
   const start = election.startTime ? new Date(election.startTime) : null;
   const end = election.endTime ? new Date(election.endTime) : null;
 
@@ -172,20 +183,20 @@ export default function ElectionDetail() {
             <div className="max-w-2xl space-y-6">
               <div className="space-y-2">
                   <div className="flex items-center gap-3">
-                     <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border flex items-center gap-2 w-fit ${
+                      <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-full border flex items-center gap-2 w-fit ${
                         isActive
                           ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800"
                           : isCompleted
                           ? "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700"
                           : "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800"
-                     }`}>
+                      }`}>
                         {isActive && <span className="relative flex w-2 h-2">
                           <span className="absolute inline-flex w-full h-full bg-green-400 rounded-full opacity-75 animate-ping"></span>
                           <span className="relative inline-flex w-2 h-2 bg-green-500 rounded-full"></span>
                         </span>}
                         {isCompleted ? t.completed : isActive ? t.active : t.upcoming}
-                     </span>
-                     <span className="text-xs font-medium text-gray-400">{t.id}: {election._id.slice(-6).toUpperCase()}</span>
+                      </span>
+                      <span className="text-xs font-medium text-gray-400">{t.id}: {election._id.slice(-6).toUpperCase()}</span>
                   </div>
                   
                   <h1 className="text-3xl font-black leading-tight tracking-tight text-gray-900 md:text-5xl dark:text-white">
@@ -376,7 +387,8 @@ export default function ElectionDetail() {
                               </div>
                           ) : (
                               <button
-                                 onClick={() => handleVote(candidate._id)}
+                                 /* MODIFIED: Set candidate to confirm instead of direct vote */
+                                 onClick={() => setCandidateToConfirm(candidate)}
                                  disabled={isDisabled}
                                  className={`w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all duration-300 flex items-center justify-center gap-2 shadow-sm ${
                                     isDisabled 
@@ -395,7 +407,10 @@ export default function ElectionDetail() {
                                        ) : hasVoted ? (
                                           t.unavailable
                                        ) : isActive ? (
-                                          `${t.voteFor} ${candidate.name.split(' ')[0]}`
+                                           /* Added ChevronRight icon here */
+                                          <span className="flex items-center gap-1">
+                                            {t.voteFor} {candidate.name.split(' ')[0]} <ChevronRight size={14} className="ml-1" />
+                                          </span>
                                        ) : (
                                           t.electionClosed
                                        )}
@@ -412,6 +427,98 @@ export default function ElectionDetail() {
         </div>
 
       </div>
+
+      {/* --- CONFIRM VOTE MODAL (NEW) --- */}
+      <AnimatePresence>
+         {candidateToConfirm && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+               {/* Backdrop */}
+               <motion.div 
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 onClick={() => setCandidateToConfirm(null)}
+                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+               />
+
+               {/* Modal Content */}
+               <motion.div
+                 initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                 animate={{ opacity: 1, scale: 1, y: 0 }}
+                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                 className="relative w-full max-w-lg bg-white dark:bg-[#1a1a1a] rounded-[32px] overflow-hidden shadow-2xl border border-gray-100 dark:border-gray-800"
+               >
+                  <div className="absolute z-10 top-4 right-4">
+                     <button 
+                       onClick={() => setCandidateToConfirm(null)}
+                       className="p-2 text-gray-400 transition-colors hover:text-black dark:hover:text-white"
+                     >
+                       <X size={20} />
+                     </button>
+                  </div>
+
+                  <div className="flex flex-col items-center p-8 text-center">
+                     {/* Identity Header */}
+                     <div className="mb-6 space-y-2">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-yellow-200 dark:border-yellow-500/20">
+                           <ShieldAlert size={12} /> Confirm Your Choice
+                        </div>
+                        <h2 className="text-2xl font-black text-gray-900 dark:text-white">Review Selection</h2>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">Please confirm that you intend to cast your vote for the following candidate.</p>
+                     </div>
+
+                     {/* Candidate Profile Card (Mini) */}
+                     <div className="w-full p-6 rounded-2xl bg-gradient-to-br from-[#0B2447] to-blue-900 dark:from-[#222] dark:to-black mb-8 shadow-xl flex items-center gap-6 border border-gray-200 dark:border-gray-800">
+                        <div className="w-20 h-20 p-1 bg-white rounded-2xl dark:bg-black shrink-0">
+                           <div className="w-full h-full bg-gray-100 dark:bg-[#111] rounded-xl flex items-center justify-center overflow-hidden">
+                              {candidateToConfirm.iconUrl ? (
+                                 <img src={`${API_BASE}${candidateToConfirm.iconUrl}`} alt={candidateToConfirm.name} className="object-cover w-full h-full rounded-xl" />
+                              ) : (
+                                 <User size={32} className="text-gray-400" />
+                              )}
+                           </div>
+                        </div>
+                        <div className="text-left text-white">
+                           <h3 className="text-xl font-black">{candidateToConfirm.name}</h3>
+                           <p className="text-xs font-bold tracking-wider uppercase opacity-80">{candidateToConfirm.party}</p>
+                           <div className="mt-2 flex items-center gap-1.5 text-[10px] font-mono bg-white/20 px-2 py-0.5 rounded-md w-fit">
+                              <Fingerprint size={10} /> ID Verified
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Security Notice */}
+                     <div className="flex w-full gap-3 p-4 mb-8 text-left border border-gray-100 bg-gray-50 dark:bg-black/20 dark:border-gray-800 rounded-2xl">
+                        <Lock size={20} className="text-gray-400 shrink-0 mt-0.5" />
+                        <p className="text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+                           Once confirmed, your vote is <span className="font-bold text-gray-900 underline dark:text-white decoration-yellow-500/50 decoration-2">irreversible</span>. It will be encrypted and submitted anonymously.
+                        </p>
+                     </div>
+
+                     {/* Actions */}
+                     <div className="flex flex-col w-full gap-3 sm:flex-row">
+                        <button 
+                          onClick={() => setCandidateToConfirm(null)}
+                          className="flex-1 px-6 py-4 text-sm font-bold text-gray-700 transition-all bg-gray-100 rounded-2xl dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        >
+                           Go Back
+                        </button>
+                        <button 
+                          onClick={() => executeVote(candidateToConfirm._id)}
+                          className="flex-[1.5] py-4 px-6 rounded-2xl bg-[#0B2447] dark:bg-white text-white dark:text-black font-black text-sm shadow-xl hover:shadow-2xl transition-all flex items-center justify-center gap-2 group/confirm"
+                        >
+                           Confirm Vote <CheckCircle2 size={18} className="transition-transform group-hover/confirm:scale-110" />
+                        </button>
+                     </div>
+                  </div>
+                  
+                  {/* Decorative Scanline */}
+                  <div className="absolute bottom-0 left-0 right-0 h-1 opacity-50 bg-gradient-to-r from-transparent via-yellow-500 to-transparent"></div>
+               </motion.div>
+            </div>
+         )}
+      </AnimatePresence>
+
     </div>
   );
 }

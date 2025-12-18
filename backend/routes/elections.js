@@ -295,18 +295,26 @@ router.post('/:id/vote', auth, async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// 🔹 CHECK VOTE STATUS (FIXED SCHEMA)
+// 🔹 CHECK VOTE STATUS (DEBUG VERSION)
 // ---------------------------------------------------------
 router.get('/:id/vote-status', auth, async (req, res) => {
   try {
-    // ✅ FIX: Change 'user' to 'voter' to match the schema
+    const electionId = req.params.id;
+    const userId = req.user.id;
+
+    console.log("--- DEBUG VOTE STATUS ---");
+    console.log("Looking for Election ID:", electionId);
+    console.log("Looking for Voter ID:   ", userId);
+
+    // ✅ MATCH 'voter' FIELD EXACTLY AS IN YOUR DB
     const vote = await Vote.findOne({ 
-      election: req.params.id, 
-      voter: req.user.id  
+      election: electionId, 
+      voter: userId 
     });
 
+    console.log("Vote Found?", vote ? "YES" : "NO");
+
     if (vote) {
-      // ✅ FIX: Return the correct candidate ID from the 'candidate' field
       return res.json({ hasVoted: true, candidateId: vote.candidate });
     } else {
       return res.json({ hasVoted: false });

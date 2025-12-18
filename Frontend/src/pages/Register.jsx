@@ -411,7 +411,7 @@ export default function Register() {
               {/* 3. Password Row */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <div className="space-y-1.5 group">
-                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.password}</label>
+                    <label className="text-[10px] font-bold text-gray-500 dark:text-gray-500 uppercase tracking-wider group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500 transition-colors">{t.confirmPassword}</label>
                     <div className="relative">
                        <div className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 transition-colors pointer-events-none dark:text-gray-600 group-focus-within:text-yellow-600 dark:group-focus-within:text-yellow-500">
                           <Lock size={16} />

@@ -57,7 +57,7 @@ export default function MyVotes() {
       <div className="max-w-[1400px] mx-auto space-y-6">
         
         {/* --- HEADER --- */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
              <div className="h-12 w-12 rounded-full bg-[#0B2447] dark:bg-yellow-400 flex items-center justify-center text-white dark:text-black shadow-lg">
                 <History size={24} />
@@ -95,8 +95,8 @@ export default function MyVotes() {
         <div className="bg-white dark:bg-[#1a1a1a] rounded-xl shadow-md border border-gray-200 dark:border-zinc-800 overflow-hidden transition-colors duration-200">
            
            {votes.length === 0 ? (
-              <div className="p-12 flex flex-col items-center justify-center text-center text-gray-500 dark:text-gray-400">
-                 <div className="h-16 w-16 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-4">
+              <div className="flex flex-col items-center justify-center p-12 text-center text-gray-500 dark:text-gray-400">
+                 <div className="flex items-center justify-center w-16 h-16 mb-4 bg-gray-100 rounded-full dark:bg-zinc-800">
                     <Vote size={32} className="opacity-50" />
                  </div>
                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">No Votes Yet</h3>
@@ -115,11 +115,11 @@ export default function MyVotes() {
                  <table className="w-full text-sm">
                     <thead className="bg-gray-50 dark:bg-[#222] border-b border-gray-200 dark:border-zinc-700">
                        <tr>
-                          <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300">Election</th>
-                          <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300">Candidate Selected</th>
-                          <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300 hidden md:table-cell">Party</th>
-                          <th className="px-6 py-4 text-left font-semibold text-gray-600 dark:text-gray-300">Voted At</th>
-                          <th className="px-6 py-4 text-center font-semibold text-gray-600 dark:text-gray-300">Actions</th>
+                          <th className="px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300">Election</th>
+                          <th className="px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300">Candidate Selected</th>
+                          <th className="hidden px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300 md:table-cell">Party</th>
+                          <th className="px-6 py-4 font-semibold text-left text-gray-600 dark:text-gray-300">Voted At</th>
+                           <th className="px-6 py-4 font-semibold text-center text-gray-600 dark:text-gray-300">Results</th>
                        </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
@@ -134,7 +134,7 @@ export default function MyVotes() {
                              <tr key={v._id} className="hover:bg-gray-50 dark:hover:bg-[#1f1f1f] transition-colors">
                                 <td className="px-6 py-4">
                                    <div className="flex items-center gap-3">
-                                      <div className="h-8 w-8 rounded-full bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                                      <div className="flex items-center justify-center w-8 h-8 text-blue-600 rounded-full bg-blue-50 dark:bg-blue-900/20 dark:text-blue-400">
                                          <Vote size={14} />
                                       </div>
                                       <span className="font-medium text-gray-900 dark:text-white">
@@ -145,34 +145,23 @@ export default function MyVotes() {
                                 <td className="px-6 py-4">
                                    <div className="flex items-center gap-2">
                                       <User size={14} className="text-gray-400" />
-                                      <span className="text-gray-700 dark:text-gray-300 font-medium">
+                                      <span className="font-medium text-gray-700 dark:text-gray-300">
                                          {candidate.name || <span className="italic text-gray-400">Unknown</span>}
                                       </span>
                                    </div>
                                 </td>
-                                <td className="px-6 py-4 hidden md:table-cell">
+                                <td className="hidden px-6 py-4 md:table-cell">
                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-zinc-800 dark:text-gray-300">
                                       {candidate.party || "—"}
                                    </span>
                                 </td>
                                 <td className="px-6 py-4">
-                                   <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400 text-xs">
+                                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                       <Calendar size={14} />
                                       {votedAt}
                                    </div>
                                 </td>
-                                <td className="px-6 py-4 text-center">
-                                   {election._id ? (
-                                      <Link
-                                         to={`/elections/${election._id}/results`}
-                                         className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline"
-                                      >
-                                         See Results <ExternalLink size={12} />
-                                      </Link>
-                                   ) : (
-                                      <span className="text-xs text-gray-400 dark:text-gray-600">—</span>
-                                   )}
-                                </td>
+                              
                              </tr>
                           );
                        })}
