@@ -1,8 +1,7 @@
 // backend/app.js
 const express = require('express');
 const cors = require('cors');
-const path = require('path'); // ✅ Imported once here
-
+const path = require('path');
 const authRoutes = require('./routes/auth');
 const electionRoutes = require('./routes/elections');
 const voteRoutes = require('./routes/votes');
@@ -19,6 +18,7 @@ const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:8080";
 app.use(cors({
  origin: [
     "http://localhost:5173", 
+    "http://localhost:8080",
     "https://e-voting-systemmabi.onrender.com",
     "https://e-voting-system-vert.vercel.app"
   ],
@@ -36,21 +36,14 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-// Serve uploads (This handles the images)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// API routes
 app.use('/api/auth', authOtpRouter);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/elections', electionRoutes);
 app.use('/api', voteRoutes);
 app.use('/api/files', fileRoutes);
-
-// ✅ mount support routes here
 app.use('/api/support', supportRoutes);
-
-// Health check
 app.get('/', (req, res) => {
   res.send('E-Voting System Backend Running ✅');
 });

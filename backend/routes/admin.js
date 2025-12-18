@@ -85,4 +85,30 @@ router.get('/audit-logs', auth, ensureAdmin, async (req, res) => {
   }
 });
 
+router.patch('/verify/:id', auth, ensureAdmin, async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    // 👇 THIS UPDATES THE DATABASE
+    const updatedUser = await User.findByIdAndUpdate(
+      userId, 
+      { verificationStatus: "verified" }, // Matches your DB field name exactly
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Optional: Create an audit log for this action
+    // await AuditLog.create({ user: req.user.id, action: 'VERIFY_USER', details: `Verified user ${userId}` });
+
+    return res.json({ msg: 'User verified successfully', user: updatedUser });
+
+  } catch (err) {
+    console.error('Verify user error:', err);
+    return res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
 module.exports = router;

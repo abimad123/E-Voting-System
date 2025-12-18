@@ -250,6 +250,16 @@ export default function AdminPanel() {
        </div>
     </div>
   );
+  const handleVerify = async (userId) => {
+    try {
+      const response = await api.patch(`/api/admin/verify/${userId}`); // Make sure this matches your backend route
+      alert("User verified successfully!");
+      window.location.reload(); 
+    } catch (error) {
+      console.error("Verification failed:", error);
+      alert("Failed to verify user.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0f0f0f] p-4 md:p-8 transition-colors duration-200 font-sans">
