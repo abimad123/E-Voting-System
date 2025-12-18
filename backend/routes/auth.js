@@ -291,7 +291,7 @@ router.post('/admin/verify/:userId', auth, ensureAdmin, async (req, res) => {
     }
 
     const update = {
-      verificationStatus: action === 'approve' ? 'approved' : 'rejected',
+      verificationStatus: action === 'approve' ? 'verified' : 'rejected',
       verifiedBy: req.user.id,
       verifiedAt: new Date(),
     };

@@ -1,5 +1,6 @@
 // backend/routes/elections.js
 const express = require('express');
+const Vote = require('../models/Vote');
 const router = express.Router();
 const Election = require('../models/Election');
 const Candidate = require('../models/Candidate');
@@ -231,6 +232,82 @@ router.get('/:id/results', async (req, res) => {
     res
       .status(500)
       .json({ msg: 'Internal server error', error: err.message });
+  }
+});
+// ---------------------------------------------------------
+// 🔹 CAST VOTE (The Fix is here)
+// ---------------------------------------------------------
+router.post('/:id/vote', auth, async (req, res) => {
+  try {
+    const { candidateId } = req.body;
+    const electionId = req.params.id;
+    const userId = req.user.id;
+
+    // 1. Check if Election exists and is Active
+    const election = await Election.findById(electionId);
+    if (!election) return res.status(404).json({ msg: 'Election not found' });
+    if (election.isArchived) return res.status(400).json({ msg: 'Election is archived' });
+
+    const now = new Date();
+    if (new Date(election.startTime) > now) return res.status(400).json({ msg: 'Election has not started' });
+    if (new Date(election.endTime) < now) return res.status(400).json({ msg: 'Election has ended' });
+
+    // 2. CHECK VERIFICATION STATUS (THE FIX)
+    // We now accept EITHER 'approved' OR 'verified'
+    if (req.user.verificationStatus !== 'approved' && req.user.verificationStatus !== 'verified') {
+      return res.status(403).json({ msg: 'You must be verified to cast a vote. Please complete KYC.' });
+    }
+
+    // 3. Check if user already voted
+    const existingVote = await Vote.findOne({ election: electionId, user: userId });
+    if (existingVote) {
+      return res.status(400).json({ msg: 'You have already voted in this election' });
+    }
+
+    // 4. Validate Candidate
+    const candidate = await Candidate.findById(candidateId);
+    if (!candidate || candidate.election.toString() !== electionId) {
+      return res.status(400).json({ msg: 'Invalid candidate' });
+    }
+
+    // 5. Record Vote
+    const newVote = new Vote({
+      election: electionId,
+      candidate: candidateId,
+      user: userId
+    });
+    await newVote.save();
+
+    // 6. Update Candidate Count
+    candidate.votesCount = (candidate.votesCount || 0) + 1;
+    await candidate.save();
+
+    res.json({ msg: 'Vote cast successfully' });
+
+  } catch (err) {
+    console.error('Vote error:', err);
+    res.status(500).json({ msg: 'Server error', error: err.message });
+  }
+});
+
+// ---------------------------------------------------------
+// 🔹 CHECK VOTE STATUS (Frontend needs this too)
+// ---------------------------------------------------------
+router.get('/:id/vote-status', auth, async (req, res) => {
+  try {
+    const vote = await Vote.findOne({ 
+      election: req.params.id, 
+      user: req.user.id 
+    });
+
+    if (vote) {
+      return res.json({ hasVoted: true, candidateId: vote.candidate });
+    } else {
+      return res.json({ hasVoted: false });
+    }
+  } catch (err) {
+    console.error('Vote status error:', err);
+    res.status(500).json({ msg: 'Server error' });
   }
 });
 
