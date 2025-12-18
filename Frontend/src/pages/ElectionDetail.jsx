@@ -72,7 +72,10 @@ export default function ElectionDetail() {
             setVotedCandidateId(recoveredId);
         }
 
-        setCanVote(meRes.data.user.verificationStatus === "approved");
+        setCanVote(
+  meRes.data.user.verificationStatus === "approved" || 
+  meRes.data.user.verificationStatus === "verified"
+);
         setCurrentUser(meRes.data.user);
 
       } catch (err) {
