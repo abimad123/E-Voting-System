@@ -83,8 +83,7 @@ router.get('/', auth, ensureAdmin, async (req, res) => {
 });
 
 // --------------------------------------------------
-// POST /api/support/:id/reply
-// Admin replies + update status + send email via SendGrid
+// POST /api/support/:id/reply (DEBUG VERSION)
 // --------------------------------------------------
 router.post('/:id/reply', auth, ensureAdmin, async (req, res) => {
   try {
@@ -92,9 +91,7 @@ router.post('/:id/reply', auth, ensureAdmin, async (req, res) => {
     const { subject, message, status } = req.body;
 
     if (!subject || !message) {
-      return res
-        .status(400)
-        .json({ msg: 'Reply subject and message are required.' });
+      return res.status(400).json({ msg: 'Reply subject and message are required.' });
     }
 
     const ticket = await SupportTicket.findById(id);
@@ -102,7 +99,7 @@ router.post('/:id/reply', auth, ensureAdmin, async (req, res) => {
       return res.status(404).json({ msg: 'Ticket not found' });
     }
 
-    // Prepare email body (nice format)
+    // Prepare email body
     const bodyText = `
 Dear ${ticket.name || 'Voter'},
 
@@ -118,14 +115,19 @@ This is an automated email from Official E-Voting Support.
 
     let emailError = null;
     try {
-      // ✅ use the SAME SendGrid helper as OTP
+      console.log("Attempting to send email to:", ticket.email);
       await sendEmail(ticket.email, subject, bodyText);
+      console.log("Email sent successfully!");
     } catch (mailErr) {
-      console.error('support reply email error:', mailErr);
-      emailError = mailErr;
+      console.error('CRITICAL EMAIL ERROR:', mailErr);
+      // Capture the full error to send back to you
+      emailError = mailErr.message || JSON.stringify(mailErr);
+      if (mailErr.response) {
+        emailError += ' :: ' + JSON.stringify(mailErr.response.body);
+      }
     }
 
-    // Update ticket regardless of email success
+    // Update ticket details
     ticket.responseSubject = subject;
     ticket.responseBody = message;
     ticket.respondedAt = new Date();
@@ -136,16 +138,13 @@ This is an automated email from Official E-Voting Support.
     await AuditLog.create({
       user: req.user.id,
       action: 'SUPPORT_TICKET_REPLIED',
-      details: {
-        ticketId: ticket._id,
-        newStatus: ticket.status,
-      },
+      details: { ticketId: ticket._id, newStatus: ticket.status },
     });
 
-    // Response message depending on email success
+    // 🔴 CHANGE IS HERE: Return the REAL error to the frontend
     if (emailError) {
-      return res.json({
-        msg: 'Reply saved, but email could not be sent (check SendGrid / SMTP settings).',
+      return res.status(200).json({
+        msg: `Email FAILED: ${emailError}`, // <--- You will see this in your alert now
         ticket,
       });
     }
@@ -154,10 +153,11 @@ This is an automated email from Official E-Voting Support.
       msg: 'Reply sent and ticket updated.',
       ticket,
     });
+
   } catch (err) {
     console.error('support reply error:', err);
     return res.status(500).json({
-      msg: 'Server error while replying to ticket.',
+      msg: 'Server error',
       error: err.message,
     });
   }
