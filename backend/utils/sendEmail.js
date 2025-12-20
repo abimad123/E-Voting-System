@@ -1,62 +1,53 @@
 // backend/utils/sendEmail.js
-const nodemailer = require("nodemailer");
+const sgMail = require('@sendgrid/mail');
 
-let transporter;
-
-function initTransporter() {
-  if (transporter) return transporter;
-
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.warn(
-      "[sendEmail] SMTP not fully configured. Emails will NOT be sent."
-    );
-    return null;
-  }
-
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: false, // SendGrid SMTP uses STARTTLS on 587
-    auth: {
-      user: process.env.SMTP_USER, // "apikey"
-      pass: process.env.SMTP_PASS, // your SendGrid API key
-    },
-  });
-
-  return transporter;
+// 1. Initialize with your API Key
+if (process.env.SENDGRID_API_KEY) {
+  sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+} else {
+  console.warn("[sendEmail] WARNING: SENDGRID_API_KEY is missing in .env");
 }
 
 /**
- * sendEmail(to, subject, text)
+ * sendEmail(to, subject, text, html)
+ * Uses SendGrid Web API (Port 443) to bypass Render's SMTP block.
  */
-async function sendEmail(to, subject, text) {
-  const tx = initTransporter();
-
-  if (!tx) {
-    console.log("[sendEmail] Would send email:", { to, subject });
+async function sendEmail(to, subject, text, html = null) {
+  // Guard clause: If no key, don't crash, just log it.
+  if (!process.env.SENDGRID_API_KEY) {
+    console.log("[sendEmail] API Key missing. Would have sent:", { to, subject });
     return;
   }
 
-  const from =
-    process.env.SMTP_FROM ||
-    `E-Voting <${process.env.SMTP_USER}>`;
+  // Use the verified sender from env, or fallback to a safety string
+  // IMPORTANT: This email MUST be verified in your SendGrid dashboard
+  const from = process.env.SMTP_FROM || 'abilegend11@gmail.com'; 
 
-  console.log("[sendEmail] Sending email via SMTP:", {
-    host: process.env.SMTP_HOST,
-    port: process.env.SMTP_PORT,
-    user: process.env.SMTP_USER,
+  const msg = {
     to,
+    from, 
     subject,
-  });
+    text, // Plain text version
+    html: html || text.replace(/\n/g, '<br>'), // Simple HTML fallback
+  };
 
-  await tx.sendMail({
-    from,
-    to,
-    subject,
-    text,
-  });
-
-  console.log("[sendEmail] Email sent OK to:", to);
+  try {
+    console.log(`[sendEmail] Sending via SendGrid API to: ${to}`);
+    await sgMail.send(msg);
+    console.log("[sendEmail] ✅ Email sent successfully");
+  } catch (error) {
+    console.error("[sendEmail] ❌ Failed to send email:");
+    
+    // Log detailed SendGrid error for debugging
+    if (error.response) {
+      console.error(JSON.stringify(error.response.body, null, 2));
+    } else {
+      console.error(error.message);
+    }
+    
+    // We throw error so the controller knows to send a 500 response
+    throw new Error("Email could not be sent via SendGrid API");
+  }
 }
 
 module.exports = sendEmail;
